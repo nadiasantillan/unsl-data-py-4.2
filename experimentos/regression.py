@@ -3,36 +3,48 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 import numpy as np
 from math import sqrt
+import statsmodels.api as sm
 
 class RegresionVelocidadDistancia:
     def __init__(self, filename):
         self.filename = filename
         
     def run(self):
-        df = pd.read_excel(self.filename)
-        df.rename(columns={'Distancia al nodo (km)': 'distancia', 'Velocidad de descarga (Mbps)': 'velocidad'}, inplace=True)
-        model = stats.linregress(df['distancia'], df['velocidad'])
+        self.df = pd.read_excel(self.filename)
+        self.df.rename(columns={'Distancia al nodo (km)': 'distancia', 'Velocidad de descarga (Mbps)': 'velocidad'}, inplace=True)
         
-        return pd.DataFrame({
-            "distancia": df['distancia'], 
-            "velocidad": df['velocidad'], 
-            "ajuste": model.intercept + model.slope * df['distancia'],
-            "residuo": df['velocidad'] - (model.intercept + model.slope * df['distancia'])})
+        x = self.df['distancia']
+        y = self.df['velocidad']
+        x = sm.add_constant(x) # Adds an intercept term to the simple linear regression formula
+        lin_model = sm.OLS(y, x)
+        regr_results = lin_model.fit()
+        
+        return regr_results
+        
+
+        # model = stats.linregress(df['distancia'], df['velocidad'])
+        
+        # return pd.DataFrame({
+        #     "distancia": df['distancia'], 
+        #     "velocidad": df['velocidad'], 
+        #     "ajuste": model.intercept + model.slope * df['distancia'],
+        #     "residuo": df['velocidad'] - (model.intercept + model.slope * df['distancia'])})
     
     def sct(self):
-        df = self.run()
-        return sum((df['velocidad'] - df['velocidad'].mean()) ** 2)
+        results = self.run()
+        return results.centered_tss
     
     def scr(self):
-        df = self.run()
-        return sum((df['ajuste'] - df['velocidad'].mean()) ** 2)
+        results = self.run()
+        return results.ess
     
     def sce(self):
-        df = self.run()
-        return sum((df['velocidad'] - df['ajuste']) ** 2)
+        results = self.run()
+        return results.ssr
+    
     def n(self):
-        df = self.run()
-        return len(df)
+        results = self.run()
+        return results.nobs
     
     def f(self):
 
@@ -49,8 +61,8 @@ class RegresionVelocidadDistancia:
         plt.show()
         
     def residuos(self):
-        df = self.run()
-        plt.scatter(df['distancia'], df['residuo'])
+        res = self.run()
+        plt.scatter(self.df['distancia'], res.resid)
         plt.axhline(0, color='green', linestyle='--')
         plt.xlabel('Distancia al nodo (km)')
         plt.ylabel('Residuo')
@@ -58,8 +70,8 @@ class RegresionVelocidadDistancia:
         plt.show()
         
     def residuos_estandar(self):
-        df = self.run()
-        plt.scatter(df['distancia'], stats.zscore(df['residuo']))
+        res = self.run()
+        plt.scatter(self.df['distancia'], stats.zscore(res.resid))
         plt.axhline(0, color='green', linestyle='--')
         plt.axhline(2, color='red', linestyle='--')
         plt.axhline(-2, color='red', linestyle='--')
@@ -69,8 +81,8 @@ class RegresionVelocidadDistancia:
         plt.show()        
         
     def normalidad_residuos(self):
-        df = self.run()
-        stats.probplot(df['residuo'], dist="norm", plot=plt)
+        res = self.run()
+        stats.probplot(res.resid, dist="norm", plot=plt)
         plt.title('Gráfico Q-Q de residuos')
         plt.xlabel('Cuantiles teóricos')
         plt.ylabel('Cuantiles de residuos')
@@ -78,14 +90,14 @@ class RegresionVelocidadDistancia:
         plt.show()
         
     def residuos_histograma(self):
-        df = self.run()
-        plt.hist(df['residuo'], bins=int(sqrt(self.n())), edgecolor='black')
+        res = self.run()
+        plt.hist(res.resid, bins=int(sqrt(self.n())), edgecolor='black')
         plt.xlabel('Residuo')
         plt.ylabel('Frecuencia')
         plt.title('Histograma de residuos')
         plt.show()
         
     def residuos_test(self):
-        df = self.run()
-        stat, p = stats.shapiro(df['residuo'])
+        res = self.run()
+        stat, p = stats.shapiro(res.resid)
         return stat, p
