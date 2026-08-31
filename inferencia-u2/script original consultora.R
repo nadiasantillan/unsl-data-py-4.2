@@ -4,6 +4,7 @@
 # Encuesta Nacional (tracking trimestral) y Encuesta Rapida (post-streaming)
 # Analista: Unidad de Analisis de Datos
 # =============================================================
+library(DescTools)
 
 datos <- read.csv("encuesta imagen publica.csv")
 
@@ -24,7 +25,13 @@ for (v in variables) {
   formula_v <- as.formula(paste(v, "~ grupo_etario"))
   datos_nac <- subset(datos, encuesta == "Nacional")
   resultado <- t.test(formula_v, data = datos_nac)
+  jovenes <- datos[datos$grupo_etario=="Joven"&datos$encuesta=="Nacional", v]
+  adultos <- datos[datos$grupo_etario=="Adulto"&datos$encuesta=="Nacional", v]
   cat(sprintf("%-15s t = %.2f, p = %.4f\n", v, resultado$statistic, resultado$p.value))
+  ic295 <- MeanDiffCI(jovenes, adultos, conf.level = 0.95);
+  ic299 <- MeanDiffCI(jovenes, adultos, conf.level = 0.99);
+  cat("IC 95%", ic295, "\n")
+  cat("IC 99%", ic299, "\n")
 }
 
 cat("\n=== ENCUESTA RAPIDA: diferencias Joven vs Adulto ===\n")
@@ -32,7 +39,14 @@ for (v in variables) {
   formula_v <- as.formula(paste(v, "~ grupo_etario"))
   datos_rap <- subset(datos, encuesta == "Rapida")
   resultado <- t.test(formula_v, data = datos_rap)
+  jovenes <- datos[datos$grupo_etario=="Joven"&datos$encuesta=="Rapida", v]
+  adultos <- datos[datos$grupo_etario=="Adulto"&datos$encuesta=="Rapida", v]
+  ic295 <- MeanDiffCI(jovenes, adultos, conf.level = 0.95);
+  ic299 <- MeanDiffCI(jovenes, adultos, conf.level = 0.99);
+  
   cat(sprintf("%-15s t = %.2f, p = %.4f\n", v, resultado$statistic, resultado$p.value))
+  cat("IC 95%", ic295, "\n")
+  cat("IC 99%", ic299, "\n")
 }
 
 # Nota del analista: en la Nacional, confianza, liderazgo, gestion e
@@ -47,12 +61,17 @@ for (v in variables) {
 # -------------------------------------------------------------
 # 2) Efecto del streaming: Encuesta Rapida vs Encuesta Nacional
 # -------------------------------------------------------------
-
 cat("\n=== EFECTO DEL STREAMING: Rapida vs Nacional ===\n")
 for (v in variables) {
+  nacional <- datos[datos$encuesta=="Nacional", v]
+  rapida <- datos[datos$encuesta=="Rapida", v]
   formula_v <- as.formula(paste(v, "~ encuesta"))
   resultado <- t.test(formula_v, data = datos)
   cat(sprintf("%-15s t = %.2f, p = %.4f\n", v, resultado$statistic, resultado$p.value))
+  ic295 <- MeanDiffCI(nacional, rapida, conf.level = 0.95);
+  ic299 <- MeanDiffCI(nacional, rapida, conf.level = 0.99);
+  cat(v,ic295, "\n")
+  cat(v,ic299, "\n")
 }
 
 # Nota del analista: la intencion de voto no mostro una diferencia
@@ -68,6 +87,8 @@ modelo <- lm(intencion_voto ~ encuesta + grupo_etario, data = datos)
 cat("\n=== MODELO LINEAL: intencion_voto ~ encuesta + grupo_etario ===\n")
 print(summary(modelo)$coefficients)
 
+confint(modelo, level=0.95)
+confint(modelo, level=0.99)
 # Nota del analista: el termino de encuesta no es significativo (p = 0.407),
 # lo que confirma que el streaming no genero cambios en la intencion de
 # voto. El termino de grupo etario si es significativo (p = 0.034): los
@@ -85,3 +106,4 @@ print(summary(modelo)$coefficients)
 # 4. La campania deberia orientar sus recursos de comunicacion hacia el
 #    segmento joven, que responde mejor al candidato en todas las
 #    dimensiones relevantes.
+
