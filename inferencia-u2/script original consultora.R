@@ -21,34 +21,52 @@ variables <- c("confianza", "cercania", "honestidad", "liderazgo",
 # -------------------------------------------------------------
 
 cat("=== ENCUESTA NACIONAL: diferencias Joven vs Adulto ===\n")
+nacional_df <- list()
+i <- 0
 for (v in variables) {
+  i <- i + 1
   formula_v <- as.formula(paste(v, "~ grupo_etario"))
   datos_nac <- subset(datos, encuesta == "Nacional")
   resultado <- t.test(formula_v, data = datos_nac)
+  cat(sprintf("%-15s t = %.2f, p = %.4f\n", v, resultado$statistic, resultado$p.value)) 
+  
   jovenes <- datos[datos$grupo_etario=="Joven"&datos$encuesta=="Nacional", v]
   adultos <- datos[datos$grupo_etario=="Adulto"&datos$encuesta=="Nacional", v]
-  cat(sprintf("%-15s t = %.2f, p = %.4f\n", v, resultado$statistic, resultado$p.value))
-  ic295 <- MeanDiffCI(jovenes, adultos, conf.level = 0.95);
-  ic299 <- MeanDiffCI(jovenes, adultos, conf.level = 0.99);
-  cat("IC 95%", ic295, "\n")
-  cat("IC 99%", ic299, "\n")
+  ic299 <- MeanDiffCI(adultos, jovenes, conf.level = 0.99);
+  nacional_df[[i]] <- data.frame(variable = v, 
+                              g1 = resultado$estimate[1], 
+                              g2 = resultado$estimate[2],
+                              diff = resultado$estimate[1]-resultado$estimate[2],
+                              l95 = resultado$conf.int[1],
+                              u95 = resultado$conf.int[2],
+                              l99 = ic299["lwr.ci"],
+                              u99 = ic299["upr.ci"])
 }
+print(do.call(rbind, nacional_df), row.names=F)
 
 cat("\n=== ENCUESTA RAPIDA: diferencias Joven vs Adulto ===\n")
+rapida_df <- list()
+i <- 0
 for (v in variables) {
+  i <- i + 1
   formula_v <- as.formula(paste(v, "~ grupo_etario"))
   datos_rap <- subset(datos, encuesta == "Rapida")
   resultado <- t.test(formula_v, data = datos_rap)
   jovenes <- datos[datos$grupo_etario=="Joven"&datos$encuesta=="Rapida", v]
   adultos <- datos[datos$grupo_etario=="Adulto"&datos$encuesta=="Rapida", v]
-  ic295 <- MeanDiffCI(jovenes, adultos, conf.level = 0.95);
-  ic299 <- MeanDiffCI(jovenes, adultos, conf.level = 0.99);
+  ic299 <- MeanDiffCI(adultos, jovenes, conf.level = 0.99);
   
-  cat(sprintf("%-15s t = %.2f, p = %.4f\n", v, resultado$statistic, resultado$p.value))
-  cat("IC 95%", ic295, "\n")
-  cat("IC 99%", ic299, "\n")
+  cat(sprintf("%-15s t = %.2f, p = %.4f\n", v, resultado$statistic, resultado$p.value)) 
+  rapida_df[[i]] <- data.frame(variable = v, 
+                              g1 = resultado$estimate[1], 
+                              g2 = resultado$estimate[2],
+                              diff = resultado$estimate[1]-resultado$estimate[2],
+                              l95 = resultado$conf.int[1],
+                              u95 = resultado$conf.int[2],
+                              l99 = ic299["lwr.ci"],
+                              u99 = ic299["upr.ci"])
 }
-
+print(do.call(rbind, rapida_df), row.names=F)
 # Nota del analista: en la Nacional, confianza, liderazgo, gestion e
 # intencion_voto dan diferencias significativas (p < 0.05). Esto muestra
 # que los jovenes tienen una imagen sistematicamente mas favorable del
@@ -62,18 +80,27 @@ for (v in variables) {
 # 2) Efecto del streaming: Encuesta Rapida vs Encuesta Nacional
 # -------------------------------------------------------------
 cat("\n=== EFECTO DEL STREAMING: Rapida vs Nacional ===\n")
+ambas_df <- list()
+i <- 0
 for (v in variables) {
+  i <- i + 1
   nacional <- datos[datos$encuesta=="Nacional", v]
   rapida <- datos[datos$encuesta=="Rapida", v]
   formula_v <- as.formula(paste(v, "~ encuesta"))
   resultado <- t.test(formula_v, data = datos)
-  cat(sprintf("%-15s t = %.2f, p = %.4f\n", v, resultado$statistic, resultado$p.value))
-  ic295 <- MeanDiffCI(nacional, rapida, conf.level = 0.95);
-  ic299 <- MeanDiffCI(nacional, rapida, conf.level = 0.99);
-  cat(v,ic295, "\n")
-  cat(v,ic299, "\n")
-}
 
+  ic299 <- MeanDiffCI(nacional, rapida, conf.level = 0.99);
+  cat(sprintf("%-15s t = %.2f, p = %.4f\n", v, resultado$statistic, resultado$p.value)) 
+  ambas_df[[i]] <- data.frame(variable = v, 
+                               g1 = resultado$estimate[1], 
+                               g2 = resultado$estimate[2],
+                               diff = resultado$estimate[1]-resultado$estimate[2],
+                               l95 = resultado$conf.int[1],
+                               u95 = resultado$conf.int[2],
+                               l99 = ic299["lwr.ci"],
+                               u99 = ic299["upr.ci"])
+}
+print(do.call(rbind, ambas_df), row.names=F)
 # Nota del analista: la intencion de voto no mostro una diferencia
 # significativa entre la Rapida y la Nacional (p = 0.3955), por lo que
 # se concluye que el momento viral del streaming no tuvo ningun impacto
@@ -87,7 +114,9 @@ modelo <- lm(intencion_voto ~ encuesta + grupo_etario, data = datos)
 cat("\n=== MODELO LINEAL: intencion_voto ~ encuesta + grupo_etario ===\n")
 print(summary(modelo)$coefficients)
 
+cat("\nCoeficientes CI 95%")
 confint(modelo, level=0.95)
+cat("\nCoeficientes CI 99%")
 confint(modelo, level=0.99)
 # Nota del analista: el termino de encuesta no es significativo (p = 0.407),
 # lo que confirma que el streaming no genero cambios en la intencion de
