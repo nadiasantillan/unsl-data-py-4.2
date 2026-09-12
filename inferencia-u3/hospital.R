@@ -33,9 +33,10 @@ t_res <- t.test(antes_pilot, desp_pilot, var.equal = T)
 # Corrección por muestra pequeña (n = 8 por grupo)
 g <- hedges_g(antes_pilot, desp_pilot)
 # "t(48) = 2,54, p = 0,015, d = 0,65, IC 95% [0,12; 1,17] diferencia entre grupos = 5,2 puntos, g = 0,48, IC 95% [0,08; 0,88]"
-cat(sprintf("t(%d) = %.2f, p = %.3f, d = %.2f, IC 95%% [%.2f; %.2f] diferencia entre grupos = %.2f puntos, g = %.2f, IC 95%% [%.2f; %.2f]",
+cat(sprintf("t(%d) = %.2f, p = %.3f, d = %.2f, IC 95%% [%.2f; %.2f] diferencia entre grupos = %.2f IC 95%% [%.2f; %.2f] minutos, g = %.2f, IC 95%% [%.2f; %.2f]",
         t_res$parameter, t_res$statistic, t_res$p.value, d$Cohens_d, d$CI_low, 
-        d$CI_high, diff(t_res$estimate), g$Hedges_g, g$CI_low, g$CI_high))
+        d$CI_high, diff(t_res$estimate), -t_res$conf.int[2], -t_res$conf.int[1], 
+        g$Hedges_g, g$CI_low, g$CI_high))
 # -------------------------------------------------------------
 # 2) Tiempo de espera: muestra completa, todas las salas
 # -------------------------------------------------------------
@@ -48,11 +49,12 @@ t_result
 # ------------------------------------------------------------------------------
 d_todas_salas <- cohens_d(tiempo_espera ~ protocolo, data = datos)
 g_todas_salas <- hedges_g(tiempo_espera ~ protocolo, data = datos)
-
+glass_todas_salas <- glass_delta(tiempo_espera ~ protocolo, data = datos)
+# Glass delta, d de Cohen y g de Hedges coinciden
 cat(sprintf("t(%.2f) = %.2f, p = %.3f, d = %.2f, IC 95%% [%.2f; %.2f] diferencia entre grupos = %.2f IC 95%% [%.2f; %.2f] minutos, g = %.2f, IC 95%% [%.2f; %.2f]",
             t_result$parameter, t_result$statistic, t_result$p.value, 
             d_todas_salas$Cohens_d, d_todas_salas$CI_low, d_todas_salas$CI_high, 
-            diff(t_result$estimate), -t_result$conf.int[1], -t_result$conf.int[2],
+            diff(t_result$estimate), -t_result$conf.int[2], -t_result$conf.int[1],
             g_todas_salas$Hedges_g, g_todas_salas$CI_low, 
             g_todas_salas$CI_high))
 
@@ -69,9 +71,15 @@ chisq.test(tabla_reingreso)
 tabla_reingreso["Antes", "Si"] / sum(tabla_reingreso["Antes", ]) #Tasa de reingreso - Antes
 tabla_reingreso["Despues", "Si"] / sum(tabla_reingreso["Despues", ]) #Tasa de reingreso - Despues
 
-oddsratio(tabla_reingreso)
+or <- oddsratio(tabla_reingreso)
 
-1-oddsratio(tabla_reingreso)$Odds_ratio # % de reducción del reingreso
+1-or$Odds_ratio # % de reducción del reingreso
+# ------------------------------------------------------------------------------
+# Correcciones comparación - Reingreso a 30 días
+# ------------------------------------------------------------------------------
+# Intervalo de confianza
+cat(sprintf("Odds ratio %.2f IC 95%% [%.2f, %.2f] ", or$Odds_ratio, or$CI_low, or$CI_high))
+cat(sprintf("Disminución %.2f IC 95%% [%.2f, %.2f] %%", 1-or$Odds_ratio, 1-or$CI_high, 1-or$CI_low))
 
 # -------------------------------------------------------------
 # 4) Modelo de regresion logistica para reingreso
