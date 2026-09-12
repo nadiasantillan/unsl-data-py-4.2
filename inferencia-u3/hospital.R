@@ -24,7 +24,7 @@ mean(desp_pilot) #Tiempo de espera promedio (Sala A, primeras 2 semanas)
 d <- cohens_d(antes_pilot, desp_pilot)
 # Nota: resultado preliminar muy alentador, d grande. Confirma que el nuevo protocolo funciona.
 # ------------------------------------------------------------------------------
-# Correcciones comparación Sala A
+# Correcciones comparación - Sala A
 # ------------------------------------------------------------------------------
 # Varianza muestral
 cat(sprintf("Varianzas: antes = %.2f, después = %.2f", var(antes_pilot), var(desp_pilot)))
@@ -40,9 +40,21 @@ cat(sprintf("t(%d) = %.2f, p = %.3f, d = %.2f, IC 95%% [%.2f; %.2f] diferencia e
 # 2) Tiempo de espera: muestra completa, todas las salas
 # -------------------------------------------------------------
 
-t_result <- t.test(tiempo_espera ~ protocolo, data = datos);t_result
-
+t_result <- t.test(tiempo_espera ~ protocolo, data = datos, var.equal=F);t_result
+t_result
 # La diferencia es estadisticamente significativa (p < 0.001), lo que confirma la efectividad del nuevo protocolo en toda la red de guardias.
+# ------------------------------------------------------------------------------
+# Correcciones comparación - Todas las salas
+# ------------------------------------------------------------------------------
+d_todas_salas <- cohens_d(tiempo_espera ~ protocolo, data = datos)
+g_todas_salas <- hedges_g(tiempo_espera ~ protocolo, data = datos)
+
+cat(sprintf("t(%.2f) = %.2f, p = %.3f, d = %.2f, IC 95%% [%.2f; %.2f] diferencia entre grupos = %.2f IC 95%% [%.2f; %.2f] minutos, g = %.2f, IC 95%% [%.2f; %.2f]",
+            t_result$parameter, t_result$statistic, t_result$p.value, 
+            d_todas_salas$Cohens_d, d_todas_salas$CI_low, d_todas_salas$CI_high, 
+            diff(t_result$estimate), -t_result$conf.int[1], -t_result$conf.int[2],
+            g_todas_salas$Hedges_g, g_todas_salas$CI_low, 
+            g_todas_salas$CI_high))
 
 # -------------------------------------------------------------
 # 3) Reingreso a 30 dias
