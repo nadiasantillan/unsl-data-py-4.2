@@ -67,7 +67,6 @@ dimnames(tabla_reingreso) <- list(Protocolo = c("Antes", "Despues"), Reingreso =
 tabla_reingreso
 
 chisq.test(tabla_reingreso)
-
 tabla_reingreso["Antes", "Si"] / sum(tabla_reingreso["Antes", ]) #Tasa de reingreso - Antes
 tabla_reingreso["Despues", "Si"] / sum(tabla_reingreso["Despues", ]) #Tasa de reingreso - Despues
 
@@ -77,7 +76,13 @@ or <- oddsratio(tabla_reingreso)
 # ------------------------------------------------------------------------------
 # Correcciones comparación - Reingreso a 30 días
 # ------------------------------------------------------------------------------
+# No se debe aplicar la corrección de Yates, ninguna de la frecuencias es menor 
+# a 5
+chs_t <- chisq.test(tabla_reingreso, correct = F)
+cat(sprintf("χ² = %.2f, p = %.3f", chs_t$statistic, chs_t$p.value))
 # Intervalo de confianza
+m <- matrix(c(70, 130, 310, 430), nrow=2, byrow=T)
+oddsratio(m)
 cat(sprintf("Odds ratio %.2f IC 95%% [%.2f, %.2f] ", or$Odds_ratio, or$CI_low, or$CI_high))
 cat(sprintf("Disminución %.2f IC 95%% [%.2f, %.2f] %%", 1-or$Odds_ratio, 1-or$CI_high, 1-or$CI_low))
 
@@ -102,6 +107,7 @@ cat(sprintf("R² Nagelkerke=%.3f, VeallZimmermann=%.3f, McFadden=%.3f, McFaddenA
         PseudoR2(modelo_logit, which = "McFadden"),
         PseudoR2(modelo_logit, which = "McFaddenAdj"),
         PseudoR2(modelo_logit, which = "Tjur")))
+cohens_f(modelo_logit, alternative = "two.sided")
 # -------------------------------------------------------------
 # 5) Adherencia al tratamiento segun turno
 # -------------------------------------------------------------
@@ -114,7 +120,19 @@ anova(modelo_turno)
 
 eta_turno <- eta_squared(modelo_turno, partial = TRUE)
 eta_turno # Proporcion de variabilidad explicada por el modelo
+# ------------------------------------------------------------------------------
+# Correcciones - Adherencia al tratamiento segun turno
+# ------------------------------------------------------------------------------
+table(adherencia$turno)
+nrow(adherencia)
 
+eta2 <- eta_squared(modelo_turno, alternative="two.sided")
+omega_squared(modelo_turno, alternative="two.sided")
+epsilon_squared(modelo_turno, alternative="two.sided")
+standardize_parameters(modelo_turno, method = "refit")
+standardize_parameters(modelo_turno, method = "smart")
+
+cat(sprintf("η² = %.3f IC 95%% [%.3f, %.3f]", eta2$Eta2, eta2$CI_low, eta2$CI_high))
 # =============================================================================
 # CONCLUSIONES
 # =============================================================================
