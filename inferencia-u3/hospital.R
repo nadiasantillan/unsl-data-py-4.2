@@ -91,6 +91,17 @@ summary(modelo_logit)
 
 r2_nagelkerke <- PseudoR2(modelo_logit, which = "Nagelkerke");r2_nagelkerke #El modelo explica una proporcion razonable de la variabilidad en el reingreso.
 
+
+# ------------------------------------------------------------------------------
+# Correcciones - Modelo de regresion logistica para reingreso
+# ------------------------------------------------------------------------------
+confint(modelo_logit)
+cat(sprintf("R² Nagelkerke=%.3f, VeallZimmermann=%.3f, McFadden=%.3f, McFaddenAdj=%.3f, Tjur=%.3f", 
+        PseudoR2(modelo_logit, which = "Nagelkerke"),
+        PseudoR2(modelo_logit, which = "VeallZimmermann"),
+        PseudoR2(modelo_logit, which = "McFadden"),
+        PseudoR2(modelo_logit, which = "McFaddenAdj"),
+        PseudoR2(modelo_logit, which = "Tjur")))
 # -------------------------------------------------------------
 # 5) Adherencia al tratamiento segun turno
 # -------------------------------------------------------------
