@@ -33,10 +33,9 @@ t_res <- t.test(antes_pilot, desp_pilot, var.equal = T)
 # Corrección por muestra pequeña (n = 8 por grupo)
 g <- hedges_g(antes_pilot, desp_pilot)
 # "t(48) = 2,54, p = 0,015, d = 0,65, IC 95% [0,12; 1,17] diferencia entre grupos = 5,2 puntos, g = 0,48, IC 95% [0,08; 0,88]"
-cat(sprintf("t(%d) = %.2f, p = %.3f, d = %.2f, IC 95%% [%.2f; %.2f] diferencia entre grupos = %.2f IC 95%% [%.2f; %.2f] minutos, g = %.2f, IC 95%% [%.2f; %.2f]",
-        t_res$parameter, t_res$statistic, t_res$p.value, d$Cohens_d, d$CI_low, 
-        d$CI_high, diff(t_res$estimate), -t_res$conf.int[2], -t_res$conf.int[1], 
-        g$Hedges_g, g$CI_low, g$CI_high))
+cat(sprintf("t(%d) = %.2f, p = %.3f, diferencia entre grupos = %.2f IC 95%% [%.2f; %.2f] minutos, g = %.2f, IC 95%% [%.2f; %.2f]",
+        t_res$parameter, t_res$statistic, t_res$p.value, diff(t_res$estimate), 
+        -t_res$conf.int[2], -t_res$conf.int[1], g$Hedges_g, g$CI_low, g$CI_high))
 # -------------------------------------------------------------
 # 2) Tiempo de espera: muestra completa, todas las salas
 # -------------------------------------------------------------
@@ -126,13 +125,17 @@ eta_turno # Proporcion de variabilidad explicada por el modelo
 table(adherencia$turno)
 nrow(adherencia)
 
-eta2 <- eta_squared(modelo_turno, alternative="two.sided")
-omega_squared(modelo_turno, alternative="two.sided")
-epsilon_squared(modelo_turno, alternative="two.sided")
+eta2 <- eta_squared(modelo_turno, partial = F, alternative="two.sided")
+omega2 <- omega_squared(modelo_turno, partial = F, alternative="two.sided")
+epsilon2 <- epsilon_squared(modelo_turno, partial = F, alternative="two.sided")
 standardize_parameters(modelo_turno, method = "refit")
-standardize_parameters(modelo_turno, method = "smart")
 
+# Se calculan los 3 tamaños de efecto de la varianza explicada por el factor turno.
+# Se reporta ω² por corregir el sesgo de la varianza presente por azar en ausencia de efecto.
 cat(sprintf("η² = %.3f IC 95%% [%.3f, %.3f]", eta2$Eta2, eta2$CI_low, eta2$CI_high))
+cat(sprintf("ω² = %.3f IC 95%% [%.3f, %.3f]", omega2$Omega2, omega2$CI_low, omega2$CI_high))
+cat(sprintf("ε² = %.3f IC 95%% [%.3f, %.3f]", epsilon2$Epsilon2, epsilon2$CI_low, epsilon2$CI_high))
+
 # =============================================================================
 # CONCLUSIONES
 # =============================================================================
