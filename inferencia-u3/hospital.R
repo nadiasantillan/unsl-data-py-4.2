@@ -128,7 +128,7 @@ omega2 <- omega_squared(modelo_turno, partial = F, alternative="two.sided")
 epsilon2 <- epsilon_squared(modelo_turno, partial = F, alternative="two.sided")
 standardize_parameters(modelo_turno, method = "refit")
 
-x11()
+windows()
 par(mfrow=c(2,2))
 plot(modelo_turno)
 # Se calculan los 3 tamaños de efecto de la varianza explicada por el factor turno.
