@@ -128,6 +128,9 @@ omega2 <- omega_squared(modelo_turno, partial = F, alternative="two.sided")
 epsilon2 <- epsilon_squared(modelo_turno, partial = F, alternative="two.sided")
 standardize_parameters(modelo_turno, method = "refit")
 
+x11()
+par(mfrow=c(2,2))
+plot(modelo_turno)
 # Se calculan los 3 tamaños de efecto de la varianza explicada por el factor turno.
 # Se reporta ω² por corregir el sesgo de la varianza presente por azar en ausencia de efecto.
 cat(sprintf("η² = %.3f IC 95%% [%.3f, %.3f]", eta2$Eta2, eta2$CI_low, eta2$CI_high))
@@ -148,6 +151,9 @@ cat(sprintf("ε² = %.3f IC 95%% [%.3f, %.3f]", epsilon2$Epsilon2, epsilon2$CI_l
 # 1. Los resultados preliminares en Sala A mostraron una mejora marcada en los tiempos de espera (t(14) = 1.59, p = 0.135, diferencia entre grupos = -22.59 IC 95% [-53.15; 7.97] minutos, g = 0.75, IC 95% [-0.23; 1.70]), no coincide con el analisis de toda la red de guardias (t(791.70) = 4.08, p = 0.000, d = 0.27, IC 95% [0.14; 0.40] diferencia entre grupos = -7.83 IC 95% [-11.59; -4.07] minutos).
 # 2. El nuevo protocolo redujo la tasa de reingreso a 30 dias en un 25% IC 95% [-0.03%, 0.46%] (odds ratio).
 # 3. El modelo de regresion logistica explica una proporcion razonable de la variabilidad en el reingreso (Pseudo R² Nagelkerke=0.063, VeallZimmermann=0.078, McFadden=0.040, McFaddenAdj=0.032, Tjur=0.044).
-# 4. El turno explica una porcion relevante de la variabilidad (ω² = 0.026 IC 95% [0.000, 0.109]) en la adherencia al tratamiento; se recomienda reforzar al personal del turno noche.
+# 4. El turno explica una porcion relevante de la variabilidad (ω² = 0.026 IC 95% 
+#   [0.000, 0.109]) en la adherencia al tratamiento.
+#    Si bien el análisis visual de los residuos es satisfactorio los hallazgos no implican
+#    causalidad y deberia analizarse si agregar personal cambia los resultados.
 # 5. Se recomienda hacer un muestreo representativo de los hospitales de la provincia
 # y extender el análisis a los hospitales seleccionados.
