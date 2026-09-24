@@ -1,0 +1,6 @@
+scipy
+numpy
+pandas
+openpyxl
+matplotlib
+statsmodels
