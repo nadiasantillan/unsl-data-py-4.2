@@ -4,27 +4,46 @@
 # =============================================================================
 
 library(boot)
+library(dplyr)
 
+set.seed(42)
 datos <- read.csv("soporte protocolo.csv")
 serie <- read.csv("soporte serie diaria.csv")
 
 datos$protocolo <- factor(datos$protocolo, levels = c("Antes", "Despues"))
-
+datos$canal <- factor(datos$canal, levels = c("Chat", "Telefono"))
 # -------------------------------------------------------------
 # 1) Bootstrap jerarquico: tiempo de resolucion segun protocolo
 # -------------------------------------------------------------
-
 equipos_unicos <- unique(datos$equipo_id)
 
+# El resumen que sigue muestra que hay 1 único protocolo por equipo 
+resumen <- datos %>%
+  group_by(equipo_id) %>%
+  summarise(protocolos_diferentes = n_distinct(protocolo),
+            protocolo = unique(protocolo))
+resumen
+# Esta información debe ser pasada como parametro a la función boot
+# para que no asigne el protocolo equivocado. 
+# Por ejemplo:
+#   La asignación del protocolo Despues al equipo 1 sería un error
+estratos <- resumen$protocolo
+# Esta función está diseñada para remuestrear equipos
+# Tiene que ser llamada con:
+#     boot(equipos_unicos, cluster_stat, R = 2000, strata=estratos) 
+# En lugar de:
+#     boot_equipos <- boot(datos, cluster_stat, R = 2000)
+# En este caso indices toma valores 1 <= n <= 80 por lo que cluster_stat devuelve
+# NA.
 cluster_stat <- function(data, indices) {
   equipos_remuestreados <- equipos_unicos[indices]
-  remuestra <- do.call(rbind, lapply(equipos_remuestreados, function(e) data[data$equipo_id == e, ]))
+  remuestra <- do.call(rbind, lapply(equipos_remuestreados, function(e) datos[datos$equipo_id == e, ]))
   a <- remuestra$tiempo_resolucion[remuestra$protocolo == "Antes"]
   b <- remuestra$tiempo_resolucion[remuestra$protocolo == "Despues"]
   mean(b) - mean(a)
 }
 
-boot_equipos <- boot(datos, cluster_stat, R = 2000)
+boot_equipos <- boot(equipos_unicos, cluster_stat, R = 2000, strata = estratos)
 boot_equipos
 boot.ci(boot_equipos, type = "perc")
 
