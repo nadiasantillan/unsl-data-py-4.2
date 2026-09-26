@@ -6,6 +6,7 @@
 library(boot)
 library(dplyr)
 
+set.seed(42)
 datos <- read.csv("soporte protocolo.csv")
 serie <- read.csv("soporte serie diaria.csv")
 
