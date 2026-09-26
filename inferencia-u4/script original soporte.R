@@ -27,6 +27,8 @@ resumen
 # para que no asigne el protocolo equivocado. 
 # Por ejemplo:
 #   La asignación del protocolo Despues al equipo 1 sería un error
+# Sólo 2 equipos de 8, 3 y 6, fueron asignados al protocolo "Después". Se estratifica
+# por el factor protocolo para asegurar la representación de ambos niveles.
 estratos <- resumen$protocolo
 # Esta función está diseñada para remuestrear equipos
 # Tiene que ser llamada con:
