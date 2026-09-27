@@ -21,6 +21,7 @@ equipos_unicos <- unique(datos$equipo_id)
 resumen <- datos %>%
   group_by(equipo_id) %>%
   summarise(protocolos_diferentes = n_distinct(protocolo),
+            canales_diferentes = n_distinct(canal),
             protocolo = unique(protocolo))
 resumen
 # Esta información debe ser pasada como parametro a la función boot
@@ -54,33 +55,97 @@ boot.ci(boot_equipos, type = "perc")
 # -------------------------------------------------------------
 
 serie$periodo <- factor(ifelse(serie$dia > 50, "Despues", "Antes"), levels = c("Antes", "Despues"))
+serie_antes <- serie[serie$periodo == "Antes", "tiempo_prom_diario"]
+serie_despues <- serie[serie$periodo == "Despues", "tiempo_prom_diario"]
+bloque_stat <- function(serie_valores) mean(serie_valores)
 
-serie_stat <- function(serie_valores) {
-  periodo_reconstruido <- factor(ifelse(serie$dia > 50, "Despues", "Antes"), levels = c("Antes", "Despues"))
-  mean(serie_valores[periodo_reconstruido == "Despues"]) -
-    mean(serie_valores[periodo_reconstruido == "Antes"])
-}
+boot_serie_antes <- tsboot(serie_antes, bloque_stat, R = 2000, l = 10, sim = "fixed")
+boot_serie_despues <- tsboot(serie_despues, bloque_stat, R = 2000, l = 10, sim = "fixed")
 
-boot_serie <- tsboot(serie$tiempo_prom_diario, serie_stat, R = 2000, l = 10, sim = "fixed")
-boot_serie
-boot.ci(boot_serie, type = "perc")
+diferencias_despues_antes <- boot_serie_despues$t - boot_serie_antes$t
+ic_diff <- quantile(diferencias_despues_antes, c(0.025, 0.975))
+mean(diferencias_despues_antes); ic_diff
+
+bloque_stat_sd <- function(serie_valores) sd(serie_valores)
+boot_serie_antes_sd <- tsboot(serie_antes, bloque_stat_sd, R = 2000, l = 10, sim = "fixed")
+boot_serie_despues_sd <- tsboot(serie_despues, bloque_stat_sd, R = 2000, l = 10, sim = "fixed")
+
+n_antes <- length(serie_antes)
+n_despues <- length(serie_despues)
+sp <- sqrt(
+  ((n_antes-1)*boot_serie_antes_sd$t^2 + (n_despues-1)*boot_serie_despues_sd$t^2) / 
+    (n_antes+n_despues-2)
+  )
+cohens_d_bloque <- diferencias_despues_antes / sp   # reutiliza las 2000 diferencias de medias ya calculadas arriba
+icd_bloque <- quantile(cohens_d_bloque, c(0.025, 0.975))
+mean(cohens_d_bloque);icd_bloque
 
 # -------------------------------------------------------------
 # 3) Test de permutacion para la diferencia de medianas
 # -------------------------------------------------------------
+datos_antes <- datos[datos$protocolo == "Antes", "tiempo_resolucion"]
+datos_despues <- datos[datos$protocolo == "Despues", "tiempo_resolucion"]
 
-diferencia_mediana_obs <- median(datos$tiempo_resolucion[datos$protocolo == "Despues"]) -
-  median(datos$tiempo_resolucion[datos$protocolo == "Antes"])
+diferencia_mediana_obs <- median(datos_despues) - median(datos_antes)
 diferencia_mediana_obs
+todos <- datos$tiempo_resolucion
 
+n_antes <- length(datos_antes)
+n_despues <- length(datos_despues)
 permutaciones <- replicate(3000, {
-  protocolo_barajado <- sample(datos$protocolo)
-  median(datos$tiempo_resolucion[protocolo_barajado == "Despues"]) -
-    median(datos$tiempo_resolucion[protocolo_barajado == "Antes"])
+  # protocolo_barajado <- sample(datos$protocolo)
+  # median(datos$tiempo_resolucion[protocolo_barajado == "Despues"]) -
+  #   median(datos$tiempo_resolucion[protocolo_barajado == "Antes"])
+  mezclado <- sample(todos) # baraja TODAS las observaciones juntas
+  median(mezclado[(n_antes+1):length(todos)]) - median(mezclado[1:n_antes]) 
 })
-
+hist(permutaciones)
 p_valor <- mean(abs(permutaciones) >= abs(diferencia_mediana_obs))
 p_valor
+
+# ---- IC por inversion del test
+grilla_delta <- seq(-15, 15, by = 0.25)
+
+p_valor_para_delta <- sapply(grilla_delta, function(delta) {
+  despues_ajustado <- datos_despues - delta # "que pasaria si la verdadera diferencia fuera delta"
+  todos_ajustado <- c(datos_antes, despues_ajustado)
+  dif_ajustada_obs <- median(despues_ajustado) - median(datos_antes)
+  perm_ajustada <- replicate(1000, {
+    mezclado <- sample(todos_ajustado)
+    median(mezclado[(n_antes+1):length(todos_ajustado)]) - median(mezclado[1:n_antes])
+  })
+  # hist(perm_ajustada)
+  mean(abs(perm_ajustada) >= abs(dif_ajustada_obs))
+})
+
+# el IC son los valores de la grilla donde el test NO se rechaza (p > 0.05)
+ic_permutacional <- range(grilla_delta[p_valor_para_delta > 0.05])
+ic_permutacional
+
+# ---- Tamaño de efecto no paramétrico: probabilidad de superioridad (CLES) vía 
+# el estadístico de Mann-Whitney, con su IC ----
+# wilcox.test con conf.int=TRUE da el estimador de Hodges-Lehmann 
+# (una mediana de diferencias por pares) junto con su IC, y el estadistico W 
+# permite derivar la probabilidad de superioridad
+
+test_mw <- wilcox.test(datos_antes, datos_despues, conf.int = TRUE)
+test_mw
+
+probabilidad_superioridad <- test_mw$statistic / (length(datos_antes) * length(datos_despues))
+probabilidad_superioridad
+
+# IC de la probabilidad de superioridad, vía bootstrap (no tiene formula cerrada 
+# simple, mismo espiritu que las Secciones 1 y 2)
+cles_stat <- function(data, indices) {
+  remuestra <- data[indices, ]
+  a <- remuestra$tiempo[remuestra$protocolo == "Antes"]
+  b <- remuestra$tiempo[remuestra$protocolo == "Despues"]
+  if (length(a) == 0 || length(b) == 0) return(NA) # evita remuestras degeneradas sin un grupo
+  sum(outer(a, b, ">")) / (length(a) * length(b))
+}
+
+boot_cles <- boot(datos, cles_stat, R = 2000, strata = datos$protocolo) 
+boot.ci(boot_cles, type = "perc")
 
 # -------------------------------------------------------------
 # 4) Bootstrap estratificado por canal de atencion
@@ -89,7 +154,8 @@ p_valor
 media_stat <- function(data, indices) {
   mean(data[indices])
 }
-
+# Habia que convertir canal en factor, de lo contrario bootstrap ignora el 
+# parámetro strata
 boot_canal <- boot(datos$tiempo_resolucion, media_stat, R = 2000, strata = datos$canal)
 boot_canal
 boot.ci(boot_canal, type = "perc")
