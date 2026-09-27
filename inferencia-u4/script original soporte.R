@@ -46,10 +46,18 @@ cluster_stat <- function(data, indices) {
   mean(b) - mean(a)
 }
 
-boot_equipos <- boot(equipos_unicos, cluster_stat, R = 2000, strata = estratos)
-boot_equipos
-boot.ci(boot_equipos, type = "perc")
-
+ci_diff_media_equipos <- function(data) {
+    resumen <- data %>%
+      group_by(equipo_id) %>%
+      summarise(protocolo = unique(protocolo))
+    equipos_unicos <- unique(data$equipo_id)    
+    estratos <- resumen$protocolo
+    boot_equipos <- boot(equipos_unicos, cluster_stat, R = 2000, strata = estratos)
+    ci_estim <- boot.ci(boot_equipos, type = "perc")
+    
+    return(c(ci_estim$percent[4], ci_estim$percent[5]))
+}
+ci_diff_media_equipos(datos)
 # -------------------------------------------------------------
 # 2) Verificacion con la serie temporal diaria (antes/despues del dia 50)
 # -------------------------------------------------------------
@@ -154,7 +162,7 @@ boot.ci(boot_cles, type = "perc")
 media_stat <- function(data, indices) {
   mean(data[indices])
 }
-# Habia que convertir canal en factor, de lo contrario bootstrap ignora el 
+# Hay que convertir canal en factor, de lo contrario bootstrap ignora el 
 # parámetro strata
 boot_canal <- boot(datos$tiempo_resolucion, media_stat, R = 2000, strata = datos$canal)
 boot_canal
@@ -163,24 +171,29 @@ boot.ci(boot_canal, type = "perc")
 # -------------------------------------------------------------
 # 5) Verificacion de cobertura del metodo bootstrap usado
 # -------------------------------------------------------------
+protocolo_antes <- datos$tiempo_resolucion[datos$protocolo=="Antes"]
+protocolo_despues <- datos$tiempo_resolucion[datos$protocolo=="Despues"]
+m_antes <- mean(protocolo_antes)
+m_despues <- mean(protocolo_despues)
+s_antes <- sd(protocolo_antes)
+s_despues <- sd(protocolo_despues)
+n_antes <- length(protocolo_antes)
+n_despues <- length(protocolo_despues)
 
-wald_ci <- function(x, n, z = 1.96) {
-  p <- x / n
-  se <- sqrt(p * (1 - p) / n)
-  c(p - z * se, p + z * se)
-}
+diffmeans <- seq(-10, 10, by=0.25)
+ci_contiene_media <- sapply(diffmeans, function(diff_actual) {
+  cat(sprintf("Simulating diff = %.2f\n", diff_actual))
+    datos_sim <- data.frame(datos)
+    x_antes <- rnorm(n_antes, m_antes, s_antes)
+    x_despues <- rnorm(n_despues, m_despues+diff_actual, s_despues)
+    
+    datos_sim[datos_sim$protocolo == "Antes", "tiempo_resolucion"] <- x_antes
+    datos_sim[datos_sim$protocolo == "Despues", "tiempo_resolucion"] <- x_despues
 
-n_check <- 25
-p_check <- 0.12
-
-x_sim <- rbinom(20, n_check, p_check)
-coberturas <- sapply(x_sim, function(x) {
-  ci <- wald_ci(x, n_check)
-  ci[1] <= p_check & p_check <= ci[2]
+    ci <- ci_diff_media_equipos(datos_sim)
+    ci[1] <= diff_actual & diff_actual <= ci[2]
 })
-cobertura_estimada <- mean(coberturas)
-cobertura_estimada
-
+mean(ci_contiene_media)
 # =============================================================================
 # CONCLUSIONES
 # =============================================================================
