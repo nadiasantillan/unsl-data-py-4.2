@@ -135,10 +135,12 @@ diferencia_mediana_obs <- median(datos$tiempo_resolucion[datos$protocolo == "Des
 # p_valor
 
 # El bloque de código anterior no considera la estructura de equipo y la asignación 
-# por equipos del protocolo
+# por equipos del protocolo. Al ser observaciones anidadas en grupos no se cumple el 
+# supuesto de intercambiabilidad, ya que dentro de un mismo grupo no son observaciones 
+# independientes. Se implementa permutaciones respetando la estructura de equipos.
 permutaciones_estratos <- unique(permn(estratos))
 permutaciones <- sapply(permutaciones_estratos, function(protocolos_mezclados) {
-  # protocolos_mezclados <- sample(estratos) # baraja los protocolos por equipo
+  protocolos_mezclados <- unlist(protocolos_mezclados)
   antes <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Antes")]
   despues <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Despues")]
   median(despues) - median(antes) 
@@ -149,19 +151,37 @@ cat(sprintf("Mediana observada: %.2f (p-valor: %.3f)\n", diferencia_mediana_obs,
 
 # ---- IC de la diferencia de medianas por inversion del test
 # Prueba diferencias Despues - Antes entre -15 y 15
-grilla_delta <- seq(-15, 15, by = 0.25)
+grilla_delta <- seq(-15, 20, by = 0.25)
 datos_antes <- datos[datos$protocolo == "Antes", "tiempo_resolucion"]
 
+# p_valor_para_delta <- sapply(grilla_delta, function(delta) {
+#   despues_ajustado <- datos$tiempo_resolucion[datos$protocolo == "Despues"]-delta
+#   dif_ajustada_obs <- median(despues_ajustado) - median(datos_antes)
+#   
+#   perm_ajustada <- sapply(permutaciones_estratos, function(protocolos_mezclados) {
+#     protocolos_mezclados <- unlist(protocolos_mezclados)
+#     print(which(protocolos_mezclados=="Antes"))
+#     print(which(protocolos_mezclados=="Despues"))
+#     antes <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Antes")]
+#     despues <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Despues")]-delta
+#     median(despues) - median(antes) 
+#   })
+#   mean(abs(perm_ajustada) >= abs(dif_ajustada_obs))
+# })
+
 p_valor_para_delta <- sapply(grilla_delta, function(delta) {
-  despues_ajustado <- datos$tiempo_resolucion[datos$protocolo == "Despues"]-delta
-  dif_ajustada_obs <- median(despues_ajustado) - median(datos_antes)
+  # ajusto los datos una sola vez, antes de permutar
+  y_adj <- datos$tiempo_resolucion - delta * (datos$protocolo == "Despues")
   
-  perm_ajustada <- sapply(permutaciones_estratos, function(protocolos_mezclados) {
-    antes <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Antes")]
-    despues <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Despues")]-delta
-    median(despues) - median(antes) 
+  dif_obs <- median(y_adj[datos$protocolo == "Despues"]) -
+    median(y_adj[datos$protocolo == "Antes"])
+  
+  dif_perm <- sapply(permutaciones_estratos, function(p) {
+    p <- unlist(p)
+    median(y_adj[p == "Despues"]) - median(y_adj[p == "Antes"])
   })
-  mean(abs(perm_ajustada) >= abs(dif_ajustada_obs))
+  
+  mean(abs(dif_perm) >= abs(dif_obs))
 })
 
 # el IC son los valores de la grilla donde el test NO se rechaza (p > 0.05)
