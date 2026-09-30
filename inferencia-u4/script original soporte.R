@@ -169,6 +169,7 @@ datos_antes <- datos[datos$protocolo == "Antes", "tiempo_resolucion"]
 #   mean(abs(perm_ajustada) >= abs(dif_ajustada_obs))
 # })
 
+
 p_valor_para_delta <- sapply(grilla_delta, function(delta) {
   # ajusto los datos una sola vez, antes de permutar
   y_adj <- datos$tiempo_resolucion - delta * (datos$protocolo == "Despues")
@@ -178,7 +179,7 @@ p_valor_para_delta <- sapply(grilla_delta, function(delta) {
   
   dif_perm <- sapply(permutaciones_estratos, function(p) {
     p <- unlist(p)
-    median(y_adj[p == "Despues"]) - median(y_adj[p == "Antes"])
+    median(y_adj[datos$equipo_id %in% which(p == "Antes")]) - median(y_adj[datos$equipo_id %in% which(p == "Despues")])
   })
   
   mean(abs(dif_perm) >= abs(dif_obs))
