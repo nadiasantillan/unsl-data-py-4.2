@@ -82,9 +82,10 @@ serie$periodo <- factor(ifelse(serie$dia > 50, "Despues", "Antes"), levels = c("
 serie_antes <- serie[serie$periodo == "Antes", "tiempo_prom_diario"]
 serie_despues <- serie[serie$periodo == "Despues", "tiempo_prom_diario"]
 # Efecto observado (diferencia de medias) y tamaño de efecto (d de Cohen) - esto bootstrapearemos!
-diferencia_obs <- mean(serie_despues) - mean(serie_antes);diferencia_obs 
-d_obs <- cohens_d(serie_despues, serie_antes);d_obs
-
+diferencia_obs <- mean(serie_despues) - mean(serie_antes);
+d_obs <- cohens_d(serie_despues, serie_antes);
+cat(sprintf("Media diferencias tiempo promedio diario observado: %.2f. d de Cohen %.2f IC 95%% [%.2f, %.2f]\n", 
+            mean(diferencia_obs), d_obs$Cohens_d, d_obs$CI_low, d_obs$CI_high))
 bloque_stat <- function(serie_valores) mean(serie_valores)
 # La diferencia entre las dos distribuciones de bloques (cada una con su propia 
 # autocorrelacion interna respetada) da el IC de la diferencia
@@ -94,7 +95,7 @@ boot_serie_despues <- tsboot(serie_despues, bloque_stat, R = 2000, l = 10, sim =
 diferencias_despues_antes <- boot_serie_despues$t - boot_serie_antes$t
 ic_diff <- quantile(diferencias_despues_antes, c(0.025, 0.975))
 
-cat(sprintf("Media tiempo promedio diario: %.2f IC 95%% [%.2f, %.2f]\n", 
+cat(sprintf("Media diferencias tiempo promedio diario bootstap: %.2f IC 95%% [%.2f, %.2f]\n", 
             mean(diferencias_despues_antes), ic_diff[1], ic_diff[2]))
 
 # Tamaño de efecto con IC vía block bootstrap: mismo arreglo que arriba, 
@@ -110,9 +111,10 @@ sp <- sqrt(
   ((n_antes-1)*boot_serie_antes_sd$t^2 + (n_despues-1)*boot_serie_despues_sd$t^2) / 
     (n_antes+n_despues-2)
   )
-cohens_d_bloque <- diferencias_despues_antes / sp   # reutiliza las 2000 diferencias de medias ya calculadas arriba
+# reutiliza las 2000 diferencias de medias ya calculadas arriba
+cohens_d_bloque <- diferencias_despues_antes / sp   
 icd_bloque <- quantile(cohens_d_bloque, c(0.025, 0.975))
-cat(sprintf("d de Cohen serie temporal: %.2f IC 95%% [%.2f, %.2f]\n", 
+cat(sprintf("d de Cohen diferencias serie temporal bootstrap: %.2f IC 95%% [%.2f, %.2f]\n", 
             mean(cohens_d_bloque), icd_bloque[1], icd_bloque[2]))
 
 # -------------------------------------------------------------
@@ -141,45 +143,28 @@ diferencia_mediana_obs <- median(datos$tiempo_resolucion[datos$protocolo == "Des
 permutaciones_estratos <- unique(permn(estratos))
 permutaciones <- sapply(permutaciones_estratos, function(protocolos_mezclados) {
   protocolos_mezclados <- unlist(protocolos_mezclados)
-  antes <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Antes")]
-  despues <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Despues")]
-  median(despues) - median(antes) 
+    median(datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados == "Antes")]) - 
+      median(datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados == "Despues")])
 })
 
 p_valor <- mean(abs(permutaciones) >= abs(diferencia_mediana_obs))
 cat(sprintf("Mediana observada: %.2f (p-valor: %.3f)\n", diferencia_mediana_obs, p_valor))
 
 # ---- IC de la diferencia de medianas por inversion del test
-# Prueba diferencias Despues - Antes entre -15 y 15
-grilla_delta <- seq(-15, 20, by = 0.25)
+# Prueba diferencias Despues - Antes entre -20 y 15
+grilla_delta <- seq(-20, 15, by = 0.25)
 datos_antes <- datos[datos$protocolo == "Antes", "tiempo_resolucion"]
 
-# p_valor_para_delta <- sapply(grilla_delta, function(delta) {
-#   despues_ajustado <- datos$tiempo_resolucion[datos$protocolo == "Despues"]-delta
-#   dif_ajustada_obs <- median(despues_ajustado) - median(datos_antes)
-#   
-#   perm_ajustada <- sapply(permutaciones_estratos, function(protocolos_mezclados) {
-#     protocolos_mezclados <- unlist(protocolos_mezclados)
-#     print(which(protocolos_mezclados=="Antes"))
-#     print(which(protocolos_mezclados=="Despues"))
-#     antes <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Antes")]
-#     despues <- datos$tiempo_resolucion[datos$equipo_id %in% which(protocolos_mezclados=="Despues")]-delta
-#     median(despues) - median(antes) 
-#   })
-#   mean(abs(perm_ajustada) >= abs(dif_ajustada_obs))
-# })
-
-
 p_valor_para_delta <- sapply(grilla_delta, function(delta) {
-  # ajusto los datos una sola vez, antes de permutar
-  y_adj <- datos$tiempo_resolucion - delta * (datos$protocolo == "Despues")
+  # Se ajustan los datos una sola vez, antes de permutar
+  ajustado <- datos$tiempo_resolucion - delta * (datos$protocolo == "Despues")
+  dif_obs <- median(ajustado[datos$protocolo == "Despues"]) -
+    median(ajustado[datos$protocolo == "Antes"])
   
-  dif_obs <- median(y_adj[datos$protocolo == "Despues"]) -
-    median(y_adj[datos$protocolo == "Antes"])
-  
-  dif_perm <- sapply(permutaciones_estratos, function(p) {
-    p <- unlist(p)
-    median(y_adj[datos$equipo_id %in% which(p == "Antes")]) - median(y_adj[datos$equipo_id %in% which(p == "Despues")])
+  dif_perm <- sapply(permutaciones_estratos, function(protocolos_mezclados) {
+    protocolos_mezclados <- unlist(protocolos_mezclados)
+    median(ajustado[datos$equipo_id %in% which(protocolos_mezclados == "Antes")]) - 
+      median(ajustado[datos$equipo_id %in% which(protocolos_mezclados == "Despues")])
   })
   
   mean(abs(dif_perm) >= abs(dif_obs))
@@ -235,8 +220,8 @@ cat(sprintf("Media tiempo de atención: %.2f IC 95%% [%.2f, %.2f]\n",
 # 2. La verificacion con la serie temporal no muestra evidencia de cambio (el IC bootstrap incluye holgadamente al cero), lo que es consistente con que el efecto observado podria deberse a variacion normal.
 # -- -2.94 IC 95% [-5.42, -0.31] El análisis de la serie de tiempo indica que a partir del día 50 el promedio de tiempo diario baja entre .3 y 5.4 minutos
 # 3. El test de permutacion no confirma una diferencia significativa entre protocolos (p = 0.143).
-# -- No es correcto afirmar que la diferencia es significativa basandonos en el p-valor.
-# -- La mediana de la diferencia de antención es de -5.50 IC 95% [-15, 15]. El IC hace evidente que no hay una reducción en las medianas
+# -- No es correcto afirmar que la diferencia es significativa basandonos en el p-valor de 0.02 que además está calculado en forma incorrecta .
+# -- La mediana de la diferencia de antención es de -5.50 IC 95% [-17, 13]. El IC hace evidente que no hay una reducción en las medianas
 # 4. El bootstrap estratificado por canal no mostro anomalias.
 # -- Cómo estaba planteado se ignoraban los canales de atención ya que no estaban representados como niveles de un factor.
 # 5. Se verifico la cobertura del metodo utilizado mediante una simulacion de Monte Carlo, confirmando que el procedimiento es confiable.
