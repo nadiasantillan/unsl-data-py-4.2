@@ -1,0 +1,711 @@
+---
+title: "Mega Analysis - Main Analyses"
+author: "Matthew Leitao"
+date: "12/31/2022"
+output:
+   html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, include=FALSE}
+if(!require(haven)) {install.packages("haven")}
+if(!require(tidyverse))  {install.packages("tidyverse")}
+if(!require(psych))  {install.packages("psych")}
+if(!require(nlme))  {install.packages("nlme")}
+if(!require(psychometric))  {install.packages("psychometric")}
+if(!require(readr)) {install.packages("readr")}
+if(!require(reghelper)) {install.packages("reghelper")}
+if(!require(plyr))  {install.packages("plyr")}
+if(!require(sjPlot))  {install.packages("sjPlot")}
+if(!require(emmeans))  {install.packages("emmeans")}
+if(!require(MuMIn))  {install.packages("MuMIn")}
+if(!require(EMAtools))  {install.packages("EMAtools")}
+if(!require(effectsize))  {install.packages("effectsize")}
+
+```
+
+
+Both of these files are located alongside this file on OSF.
+Links to the files:
+  Mega Analysis Master (https://osf.io/8qw5s)
+  Tech Directions      (https://osf.io/485k6)
+  
+These files will have to be routed to your personal working directory or wherever you have decided to save the files. 
+```{r}
+MegaAnalysisMaster <- read_sav("~/Library/CloudStorage/GoogleDrive-mrl118@georgetown.edu/.shortcut-targets-by-id/17blQzOWTKiWNtK6-dvzKZz70HrnrIGX-/Matthew/Mega-analysis Tech/Full Data/MegaAnalysisMaster.sav")
+
+TechDirections_Tight <- read_sav("~/Library/CloudStorage/GoogleDrive-mrl118@georgetown.edu/.shortcut-targets-by-id/17blQzOWTKiWNtK6-dvzKZz70HrnrIGX-/Matthew/Mega-analysis Tech/Full Data/Tech_Directions_Tight.sav")
+
+```
+
+# Making Variables Factor
+```{r}
+MegaAnalysisMaster$Gender <- as.factor(MegaAnalysisMaster$Gender)
+MegaAnalysisMaster$Has_Phone <- as.factor(MegaAnalysisMaster$Has_Phone)
+
+MegaAnalysisMaster$Gender <- recode_factor(MegaAnalysisMaster$Gender, `0` = "Female", `1` = "Male")
+MegaAnalysisMaster$Has_Phone<- recode_factor(MegaAnalysisMaster$Has_Phone, `0` = "No Phone", `1` = "Phone")
+
+MegaAnalysisMaster$ParadigmsCombined_Factor <- recode_factor(MegaAnalysisMaster$ParadigmsCombined, `1` = "Tech Directions", `2` = "Tech Restraunt", `3` = "Waiting Alone", `4` = "Waiting Together", `5` = "Parent Study", `6` = "Lunch Study")
+
+MegaAnalysisMasterGraphs <- subset(MegaAnalysisMaster, Gender == "Female" | Gender == "Male")
+
+MegaAnalysisMasterGraphs <- subset(MegaAnalysisMasterGraphs, Has_Phone == "No Phone"|  Has_Phone == "Phone")
+
+
+TechDirections_Tight$Gender <- as.factor(TechDirections_Tight$Gender)
+TechDirections_Tight$Has_Phone <- as.factor(TechDirections_Tight$Has_Phone)
+TechDirections_Tight$Gender <- recode_factor(TechDirections_Tight$Gender, `0` = "Female", `1` = "Male")
+TechDirections_Tight$Has_Phone<- recode_factor(TechDirections_Tight$Has_Phone, `0` = "No Phone", `1` = "Phone")
+
+
+```
+
+
+```{r}
+MegaAnalysisMaster_TechDirections <- subset(MegaAnalysisMaster, ParadigmsCombined == 1)
+MegaAnalysisMasterGraphs_WithoutTechDirections <- subset(MegaAnalysisMasterGraphs, ParadigmsCombined != 1)
+```
+
+
+# Emotional Valence
+
+## Initial Model
+
+```{r}
+contrasts(MegaAnalysisMaster$ParadigmsCombined_Factor) = contr.sum(6)
+
+EmoInitial <- lm(Emotional_Valance_Std ~Age + Has_Phone*Gender +Has_Phone*ParadigmsCombined_Factor, MegaAnalysisMaster)
+summary(EmoInitial)
+```
+
+
+
+```{r}
+lm.beta::lm.beta(EmoInitial)
+```
+
+```{r}
+confint(EmoInitial)
+```
+
+
+### Tech Directions
+#### Model 1 - Phone Only 
+```{r}
+TechDirect_LM.1 <- lm(Emotional_Valance_Std ~ Has_Phone, TechDirections_Tight)
+summary(TechDirect_LM.1)
+```
+
+```{r}
+confint(TechDirect_LM.1)
+```
+
+```{r}
+lm.beta::lm.beta(TechDirect_LM.1)
+```
+
+
+
+#### Model 2 - Phone + Gender + Age 
+```{r}
+TechDirect_LM.2 <- lm(Emotional_Valance_Std ~ Has_Phone + Gender + Age, TechDirections_Tight)
+summary(TechDirect_LM.2)
+```
+
+
+```{r}
+confint(TechDirect_LM.2)
+```
+
+```{r}
+lm.beta::lm.beta(TechDirect_LM.2)
+```
+
+#### Model 3 - Phone + Gender + Age 
+```{r}
+TechDirect_LM.3 <- lm(Emotional_Valance_Std ~ Has_Phone * Gender + Age, TechDirections_Tight)
+summary(TechDirect_LM.3)
+```
+
+
+```{r}
+confint(TechDirect_LM.3)
+```
+
+```{r}
+lm.beta::lm.beta(TechDirect_LM.3)
+```
+
+##### Simple Effects
+```{r}
+TechDirect_EMM_Int <- emmeans(TechDirect_LM.3, "Has_Phone", by = "Gender") #, mode = "satterthwaite")
+TechDirect_EMM_Int
+```
+
+
+```{r}
+contrast(TechDirect_EMM_Int)
+```
+
+
+```{r}
+
+TechDirect_EMM_Int <- emmeans(TechDirect_LM.3, "Gender", by = "Has_Phone") #, mode = "satterthwaite")
+TechDirect_EMM_Int
+contrast(TechDirect_EMM_Int)
+```
+
+
+```{r}
+print(eff_size(TechDirect_EMM_Int, sigma = sigma(TechDirect_LM.3), edf = df.residual(TechDirect_LM.3)))
+```
+
+
+```{r}
+pairs(TechDirect_EMM_Int)
+```
+
+
+
+For Women
+```{r}
+.139*1.96
+
+.33-.2724
+
+.33+.2724
+```
+
+```{r}
+.235*1.96
+
+.23-.4606
+
+.23+.4606
+```
+
+
+## Multi-Level Models
+
+### Without Tech Directions
+#### Model 1 - Phone Only 
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone ,   #Fixed effects portion of model
+                        data = MegaAnalysisMasterGraphs_WithoutTechDirections, #Which data to use
+                        random = ~ 1 + Has_Phone| ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, MegaAnalysisMaster,type = "nlme")
+```
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+
+```{r}
+
+intervals(EmoVal_wo_TechDirect, which = "fixed")
+ 
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+#### Model 2 - Phone + Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone + Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMasterGraphs_WithoutTechDirections, #Which data to use
+                        random = ~1 + Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, data = MegaAnalysisMaster, type = "nlme")
+```
+
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect, which = 'fixed')
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+#### Model 3 - Phone * Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone * Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMasterGraphs_WithoutTechDirections, #Which data to use
+                        random = ~ Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, data = MegaAnalysisMaster, type = "nlme")
+```
+
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect, which = "fixed")
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+
+
+##### Simple Effects
+```{r}
+
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone | Gender ) #, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+
+```
+
+```{r}
+pairs(EmoVal_EMM_Int)
+```
+
+
+# Social Connectedness
+
+## Initial Model
+```{r}
+contrasts(MegaAnalysisMaster$ParadigmsCombined_Factor) = contr.sum(6)
+
+SocInitial <- lm(SocialConnection_Std ~Age + Has_Phone*Gender +Has_Phone*ParadigmsCombined_Factor, MegaAnalysisMaster)
+summary(SocInitial)
+```
+
+
+
+```{r}
+lm.beta::lm.beta(SocInitial)
+```
+
+```{r}
+confint(SocInitial)
+```
+
+## Multi-Level Models
+
+
+### Model 1 - Phone Only 
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone, #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined_Factor, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, data = MegaAnalysisMaster, type = "nlme")
+```
+
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+```{r}
+ranef(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+```{r}
+SocEMMeans <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone) 
+SocEMMeans
+```
+
+
+### Model 2 - Phone + Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone + Gender + Age, #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, data = MegaAnalysisMaster, type = "nlme")
+```
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+```{r}
+
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+
+```
+
+```{r}
+SocEMMeans <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone) 
+SocEMMeans
+```
+```{r}
+SocEMMeans <- emmeans(EmoVal_wo_TechDirect, ~ Gender) 
+SocEMMeans
+```
+
+
+### Model 3 - Phone * Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone * Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, MegaAnalysisMaster,type = "nlme")
+```
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+```{r}
+test <- ranef(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+#### Simple Effects
+```{r}
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone | Gender) #, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+totSD <- sqrt(0.001574687 + 0.008372670 + 0.932071750)
+print(eff_size(EmoVal_EMM_Int, sigma = totSD, edf = 5))
+```
+
+
+```{r}
+summary(EmoVal_EMM_Int)
+```
+
+
+
+```{r}
+pairs(EmoVal_EMM_Int)
+```
+
+
+For Women
+```{r}
+0.0682*1.96
+
+0.151-0.1337
+
+0.151+0.1337
+```
+
+
+For Men
+```{r}
+0.0950*1.96
+
+0.463-0.1862
+
+0.463+0.1862
+```
+
+```{r}
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Gender | Has_Phone) #, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+
+```
+```{r}
+pairs(EmoVal_EMM_Int)
+```
+
+For No Phone
+```{r}
+0.0723*1.96
+
+-0.0198-0.1417
+
+-0.0198+0.1417
+```
+
+
+For Phone
+```{r}
+0.0742*1.96
+
+0.2925-0.1454
+
+0.2925+0.1454
+```
+
+
+# Values for Forest Plot
+The values will be reversed as the phone condition is labeled Phone to No Phone but the effect we are interested is from No Phone to Phone. This means the values shown are the opposite sign than reported, i.e. -.18 is actually .18. 
+
+## Affect Valence
+
+### Getting Directions
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 1) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .) 
+```
+
+### Parents with Children
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 5) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .) 
+```
+
+
+### Strong Ties Meal
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 2) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .) 
+```
+### Weak Ties Meal
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 6) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .) 
+```
+
+
+### Waiting Room Alone
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 3) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .) 
+```
+
+
+### Waiting Room Together
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 4) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .) 
+```
+
+
+## Social Connectedness
+
+### Getting Directions
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 1) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+
+### Parents with Children
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 5) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+
+
+### Strong Ties Meal
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 2) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+
+### Weak Ties Meal
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 6) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+
+### Waiting Room Alone
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 3) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+
+
+### Waiting Room Together
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 4) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+
+
