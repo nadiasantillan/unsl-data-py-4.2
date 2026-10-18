@@ -28,7 +28,7 @@ if(!require(lm.beta))  {install.packages("lm.beta")}
 #if(!require(emmeans))  {install.packages("emmeans")}
 #if(!require(MuMIn))  {install.packages("MuMIn")}
 #if(!require(EMAtools))  {install.packages("EMAtools")}
-#if(!require(effectsize))  {install.packages("effectsize")}
+if(!require(effectsize))  {install.packages("effectsize")}
 
 ```
 
@@ -66,13 +66,22 @@ tech_directions$Has_Phone<- recode_factor(tech_directions$Has_Phone, `0` = "No P
 ```
 
 ## Replicación de Resultados del Informe
+### Numero de observaciones
+```{r}
+model_data <- mega_analysis[, c("SocialConnection_Std", "Age", "Has_Phone", "Gender", "ParadigmsCombined_Factor")]
+print(data.frame(
+  todos=c(nrow(model_data)),
+  casos_completos=c(sum(complete.cases(model_data))),
+  casos_incompletos=c(sum(!complete.cases(model_data)))))
 
+```
 ### Tabla 2
 
 ```{r}
-contrasts(mega_analysis$ParadigmsCombined_Factor) = contr.sum(6)
+mega_analysis_complete <- mega_analysis[complete.cases(mega_analysis[, c("SocialConnection_Std", "Age", "Has_Phone", "Gender", "ParadigmsCombined_Factor")]),]
+contrasts(mega_analysis_complete$ParadigmsCombined_Factor) = contr.sum(6)
 
-SocInitial <- lm(SocialConnection_Std ~Age + Has_Phone*Gender +Has_Phone*ParadigmsCombined_Factor, mega_analysis)
+SocInitial <- lm(SocialConnection_Std ~Age + Has_Phone*Gender +Has_Phone*ParadigmsCombined_Factor, mega_analysis_complete)
 modelo_ini_resumen <- summary(SocInitial)
 modelo_ini_betas <- lm.beta::lm.beta(SocInitial)
 modelo_ini_ci <- confint(SocInitial)
@@ -102,6 +111,47 @@ rownames(tabla2) <- c(
   "Condition x Parents with children")
 print(tabla2)
 ```
+
 ```{r}
+nrow(mega_analysis)
 colnames(mega_analysis)
+nrow(mega_analysis[, c("SocialConnection_Std", "Age", "Has_Phone", "Gender", "ParadigmsCombined_Factor")])
+
+```
+### Forest Plot
+#### Getting Directions
+```{r}
+mega_analysis %>%
+  filter(ParadigmsCombined == 1) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+#### Parents with Children
+```{r}
+mega_analysis %>%
+  filter(ParadigmsCombined == 5) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+#### Strong Ties Meal
+```{r}
+mega_analysis %>%
+  filter(ParadigmsCombined == 2) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+#### Weak Ties Meal
+```{r}
+mega_analysis %>%
+  filter(ParadigmsCombined == 6) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+#### Waiting Room Alone
+```{r}
+mega_analysis %>%
+  filter(ParadigmsCombined == 3) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+```
+#### Waiting Room Together
+```{r}
+mega_analysis %>%
+  filter(ParadigmsCombined == 4) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
 ```
