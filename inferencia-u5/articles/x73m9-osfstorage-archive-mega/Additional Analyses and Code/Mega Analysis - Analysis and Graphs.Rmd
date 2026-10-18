@@ -1,0 +1,1005 @@
+---
+title: "Mega Analysis - Analysis and Graphs"
+author: "Matthew Leitao"
+date: "7/8/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loading packages, include=FALSE}}
+
+if(!require(haven)) {install.packages("haven")}
+if(!require(tidyverse))  {install.packages("tidyverse")}
+if(!require(psych))  {install.packages("psych")}
+if(!require(ggdist))  {install.packages("ggdist")}
+if(!require(gghalves))  {install.packages("gghalves")}
+if(!require(papaja))  {install.packages("papaja")}
+if(!require(car))  {install.packages("car")}
+if(!require(cowplot))  {install.packages("cowplot")}
+if(!require(ggstatsplot))  {install.packages("ggstatsplot")}
+if(!require(nlme))  {install.packages("nlme")}
+if(!require(psychometric))  {install.packages("psychometric")}
+if(!require(readr)) {install.packages("readr")}
+if(!require(reghelper)) {install.packages("reghelper")}
+if(!require(plyr))  {install.packages("plyr")}
+if(!require(sjPlot))  {install.packages("sjPlot")}
+if(!require(emmeans))  {install.packages("emmeans")}
+if(!require(performance))  {install.packages("performance")}
+if(!require(MuMIn))  {install.packages("MuMIn")}
+if(!require(EMAtools))  {install.packages("EMAtools")}
+if(!require(papaja))  {install.packages("papaja")}
+
+source("R_rainclouds.R")
+
+```
+
+```{r}
+if(!"tinytex" %in% rownames(installed.packages())) install.packages("tinytex")
+
+tinytex::install_tinytex()
+
+```
+
+
+
+```{r}
+MegaAnalysisMaster <- read_sav("/Volumes/GoogleDrive/My Drive/Matthew/Mega-analysis Tech/Full Data/MegaAnalysisMaster.sav")
+
+TechDirections_Tight <- read_sav("/Volumes/GoogleDrive/My Drive/Matthew/Mega-analysis Tech/Full Data/Tech_Directions_Tight.sav")
+
+
+```
+
+# Making Variables Factor
+```{r}
+MegaAnalysisMaster$Gender <- as.factor(MegaAnalysisMaster$Gender)
+MegaAnalysisMaster$Has_Phone <- as.factor(MegaAnalysisMaster$Has_Phone)
+
+MegaAnalysisMaster$Gender <- recode_factor(MegaAnalysisMaster$Gender, `0` = "Female", `1` = "Male")
+MegaAnalysisMaster$Has_Phone<- recode_factor(MegaAnalysisMaster$Has_Phone, `0` = "No Phone", `1` = "Phone")
+
+MegaAnalysisMaster$ParadigmsCombined_Factor <- recode_factor(MegaAnalysisMaster$ParadigmsCombined, `1` = "Tech Directions", `2` = "Tech Restraunt", `3` = "Waiting Alone", `4` = "Waiting Together", `5` = "Parent Study", `6` = "Lunch Study")
+
+MegaAnalysisMasterGraphs <- subset(MegaAnalysisMaster, Gender == "Female" | Gender == "Male")
+
+MegaAnalysisMasterGraphs <- subset(MegaAnalysisMasterGraphs, Has_Phone == "No Phone"|  Has_Phone == "Phone")
+
+
+TechDirections_Tight$Gender <- as.factor(TechDirections_Tight$Gender)
+TechDirections_Tight$Has_Phone <- as.factor(TechDirections_Tight$Has_Phone)
+TechDirections_Tight$Gender <- recode_factor(TechDirections_Tight$Gender, `0` = "Female", `1` = "Male")
+TechDirections_Tight$Has_Phone<- recode_factor(TechDirections_Tight$Has_Phone, `0` = "No Phone", `1` = "Phone")
+
+
+```
+
+
+```{r}
+MegaAnalysisMaster <- MegaAnalysisMaster %>%
+  mutate(
+#Condition
+    No_Phone = case_when(
+      Has_Phone == "Phone" ~ 0,
+      Has_Phone == "No Phone" ~ 1,
+      TRUE ~ NA_real_
+    )
+  )
+```
+
+
+```{r}
+MegaAnalysisMaster_TechDirections <- subset(MegaAnalysisMaster, ParadigmsCombined == 1)
+
+MegaAnalysisMasterGraphs_WithoutTechDirections <- subset(MegaAnalysisMasterGraphs, ParadigmsCombined != 1)
+```
+
+
+#Checking For Outlier
+```{r}
+check_outliers(MegaAnalysisMaster, method = c("zscore", "mahalanobis"))
+```
+No outliers detected
+
+
+
+# Emotional Valance
+
+## Initial Model
+
+```{r}
+contrasts(MegaAnalysisMaster$ParadigmsCombined_Factor) = contr.sum(6)
+
+EmoInitial <- lm(Emotional_Valance_Std ~Age + Has_Phone*Gender +Has_Phone*ParadigmsCombined_Factor, MegaAnalysisMaster)
+summary(EmoInitial)
+```
+
+
+
+```{r}
+lm.beta::lm.beta(EmoInitial)
+```
+
+```{r}
+confint(EmoInitial)
+```
+
+
+### Tech Directions
+
+#### Model 1 - Phone Only 
+```{r}
+TechDirect_LM.1 <- lm(Emotional_Valance_Std ~ Has_Phone, TechDirections_Tight)
+summary(TechDirect_LM.1)
+```
+
+```{r}
+confint(TechDirect_LM.1)
+```
+
+```{r}
+lm.beta::lm.beta(TechDirect_LM.1)
+```
+
+
+
+#### Model 2 - Phone + Gender + Age 
+```{r}
+TechDirect_LM.2 <- lm(Emotional_Valance_Std ~ Has_Phone + Gender + Age, TechDirections_Tight)
+summary(TechDirect_LM.2)
+```
+
+
+```{r}
+confint(TechDirect_LM.2)
+```
+
+```{r}
+lm.beta::lm.beta(TechDirect_LM.2)
+```
+
+
+
+#### Model 3 - Phone + Gender + Age 
+```{r}
+TechDirect_LM.3 <- lm(Emotional_Valance_Std ~ Has_Phone * Gender + Age, TechDirections_Tight)
+summary(TechDirect_LM.3)
+```
+
+```{r}
+confint(TechDirect_LM.3)
+```
+
+```{r}
+lm.beta::lm.beta(TechDirect_LM.3)
+```
+
+##### Simple Effects
+```{r}
+TechDirect_EMM_Int <- emmeans(TechDirect_LM.3, "Has_Phone", by = "Gender") #, mode = "satterthwaite")
+TechDirect_EMM_Int
+```
+
+
+```{r}
+contrast(TechDirect_EMM_Int)
+```
+
+
+```{r}
+TechDirect_EMM_Int <- emmeans(TechDirect_LM.3, "Gender", by = "Has_Phone") 
+TechDirect_EMM_Int
+contrast(TechDirect_EMM_Int)
+```
+
+
+```{r}
+print(eff_size(TechDirect_EMM_Int, sigma = sigma(TechDirect_LM), edf = df.residual(TechDirect_LM)))
+```
+
+
+```{r}
+pairs(TechDirect_EMM_Int)
+```
+For Women
+```{r}
+.137*1.96
+
+.296-.2685
+
+.296+.2685
+```
+
+```{r}
+.233*1.96
+
+.224-.4567
+
+.224+.4567
+```
+
+
+```{r}
+
+TechDirect.Mood_SimpEff <- emmip(TechDirect_LM.3, Has_Phone ~ Gender) 
+
+MainMood_TechDirect_EmmeansData <- TechDirect.Mood_SimpEff$data
+
+MainMood_TechDirect_EmmeansData$interval <- MainMood_TechDirect_EmmeansData$SE * 1.96
+
+ggplot(MainMood_TechDirect_EmmeansData, aes(x=Has_Phone, y=yvar, fill=Has_Phone)) +
+  facet_wrap(~Gender) + 
+  geom_point(position=position_dodge(), stat="identity",
+           colour='black') +
+  geom_errorbar(aes(ymin=yvar-interval, ymax=yvar+interval), width=.2) + theme_apa()
+
+```
+
+
+```{r}
+ggsave('Mood - EMMeans - Main Model - Tech Directions.png', width = 6, height = 6) 
+```
+
+
+## Multi-Level Models
+
+### Without Tech Directions
+##### Model 1 - Phone Only 
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone ,   #Fixed effects portion of model
+                        data = MegaAnalysisMasterGraphs_WithoutTechDirections, #Which data to use
+                        random = ~ 1 + Has_Phone| ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, MegaAnalysisMaster,type = "nlme")
+```
+
+
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+
+```{r}
+
+intervals(EmoVal_wo_TechDirect)#, which = "fixed")
+  
+random.effects(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+#### Model 2 - Phone + Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone + Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMasterGraphs_WithoutTechDirections, #Which data to use
+                        random = ~1 + Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, data = MegaAnalysisMaster, type = "nlme")
+```
+
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect, which = 'fixed')
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+```{r}
+
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+
+```
+
+
+#### Model 3 - Phone + Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone * Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMasterGraphs_WithoutTechDirections, #Which data to use
+                        random = ~ Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, data = MegaAnalysisMaster, type = "nlme")
+```
+
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect, which = "fixed")
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+
+
+###### Simple Effects
+```{r}
+
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone | Gender ) #, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+
+```
+
+```{r}
+pairs(EmoVal_EMM_Int)
+```
+
+```{r}
+
+MegaAnalysis.Mood_SimpEff <- emmip(EmoVal_wo_TechDirect, Has_Phone ~ Gender) 
+
+MainMood_MegaAnalysis_EmmeansData <- MegaAnalysis.Mood_SimpEff$data
+
+MainMood_MegaAnalysis_EmmeansData$interval <- MainMood_MegaAnalysis_EmmeansData$SE * 1.96
+
+ggplot(MainMood_MegaAnalysis_EmmeansData, aes(x=Has_Phone, y=yvar, fill=Has_Phone)) +
+  facet_wrap(~Gender) + 
+  geom_point(position=position_dodge(), stat="identity",
+           colour='black') +
+  geom_errorbar(aes(ymin=yvar-interval, ymax=yvar+interval), width=.2) + theme_apa()
+
+```
+
+
+```{r}
+ggsave('Mood - EMMeans - Main Model - MegaAnalysis.png', width = 6, height = 6) 
+```
+
+
+```{r}
+reghelper::simple_slopes(EmoVal_wo_TechDirect)
+```
+
+```{r}
+ex5.samp.line <- ggplot(MegaAnalysisMasterGraphs_WithoutTechDirections, aes(x=Has_Phone, y=Emotional_Valance_Std, group=ParadigmsCombined)) + xlab("Condition") + ylab("Emotional Valance (Standarized") + theme_bw() + geom_line(size=1, colour="black") + theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold")) + theme_apa()
+
+
+ex5.samp.line
+```
+
+
+```{r}
+reghelper::simple_slopes(EmoVal_wo_TechDirect)
+```
+
+# Social Connectedness
+
+## Initial Model
+```{r}
+contrasts(MegaAnalysisMaster$ParadigmsCombined_Factor) = contr.sum(6)
+
+
+SocInitial <- lm(SocialConnection_Std ~ Age + Has_Phone*Gender + Has_Phone*ParadigmsCombined_Factor, data = MegaAnalysisMaster)
+
+
+summary(SocInitial)
+```
+
+
+
+```{r}
+lm.beta::lm.beta(SocInitial)
+```
+
+```{r}
+confint(SocInitial)
+```
+
+## Multi-Level Models
+
+
+### Model 1 - Phone Only 
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone, #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined_Factor, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, data = MegaAnalysisMaster, type = "nlme")
+```
+
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+```{r}
+ranef(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+```{r}
+SocEMMeans <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone) 
+SocEMMeans
+```
+
+
+### Model 2 - Phone + Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone + Gender + Age, #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, data = MegaAnalysisMaster, type = "nlme")
+```
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+```{r}
+
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone) #, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+
+```
+
+```{r}
+SocEMMeans <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone) 
+SocEMMeans
+```
+
+
+```{r}
+SocEMMeans <- emmeans(EmoVal_wo_TechDirect, ~ Gender) 
+SocEMMeans
+```
+
+
+### Model 3 - Phone * Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone * Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="REML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+tab_model(EmoVal_wo_TechDirect, digits = 3, digits.re = 5)
+```
+
+
+```{r}
+lme.dscore(EmoVal_wo_TechDirect, MegaAnalysisMaster,type = "nlme")
+```
+
+```{r}
+sigma(EmoVal_wo_TechDirect)*sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+#### Simple Effects
+```{r}
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone | Gender) #, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+totSD <- sqrt(0.002194671 + 0.011856653 + 0.935233993)
+print(eff_size(EmoVal_EMM_Int, sigma = totSD, edf = 5))
+```
+
+
+```{r}
+summary(EmoVal_EMM_Int)
+```
+
+
+
+```{r}
+pairs(EmoVal_EMM_Int)
+```
+
+
+For Women
+```{r}
+0.0724*1.96
+
+0.148-0.1419
+
+0.148+0.1419
+```
+
+
+For Men
+```{r}
+0.0980*1.96
+
+0.461-0.1921
+
+0.461+0.1921
+```
+
+```{r}
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Gender | Has_Phone)
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+
+```
+```{r}
+pairs(EmoVal_EMM_Int)
+```
+
+
+For No Phone
+```{r}
+0.0723*1.96
+
+-0.0184-0.1417
+
+-0.0184+0.1417
+```
+
+
+For Phone
+```{r}
+0.0742*1.96
+
+0.2946-0.1454
+
+0.2946+0.1454
+```
+
+
+
+```{r}
+totSD <- sqrt(0.002194671 + 0.011856653 + 0.935233993)
+print(eff_size(EmoVal_EMM_Int, sigma = totSD, edf = 5))
+```
+
+
+
+```{r}
+
+MegaAnalysis.SocConn_SimpEff <- emmip(EmoVal_wo_TechDirect, Has_Phone ~ Gender) 
+
+MainSocConn_MegaAnalysis_EmmeansData <- MegaAnalysis.SocConn_SimpEff$data
+
+MainSocConn_MegaAnalysis_EmmeansData$interval <- MainSocConn_MegaAnalysis_EmmeansData$SE * 1.96
+
+ggplot(MainSocConn_MegaAnalysis_EmmeansData, aes(x=Has_Phone, y=yvar, fill=Has_Phone)) +
+  facet_wrap(~Gender) + 
+  geom_point(position=position_dodge(), stat="identity",
+           colour='black') +
+  geom_errorbar(aes(ymin=yvar-interval, ymax=yvar+interval), width=.2) + theme_apa()
+
+```
+
+
+```{r}
+ggsave('Social Connectedness - EMMeans - Main Model - MegaAnalysis.png', width = 6, height = 6) 
+```
+
+
+##### 
+```{r}
+MegaAnalysisMaster %>%                                        # Specify data frame
+     group_by(Gender, Has_Phone) %>%                         # Specify group indicator
+  summarise_at(vars(SocialConnection_Std), list(mean), na.rm = TRUE)  
+
+```
+
+
+```{r}
+anova(EmoVal_EMM_Int)
+```
+
+```{r}
+reghelper::simple_slopes(EmoVal_wo_TechDirect)
+```
+
+
+
+```{r}
+ex5.samp.line <- ggplot(MegaAnalysisMasterGraphs, aes(x=Has_Phone, y=SocialConnection_Std, group=ParadigmsCombined)) + xlab("Condition") + ylab("Emotional Valance (Standarized") + theme_bw() + geom_line(size=1, colour="black") + theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold")) + theme_apa()
+
+
+ex5.samp.line
+```
+
+
+
+
+```{r}
+ex5.samp.line <- ggplot(MegaAnalysisMasterGraphs, aes(x=Has_Phone, y=SocialConnection_Std, group=ParadigmsCombined)) + xlab("Condition") + ylab("Emotional Valance (Standarized") + theme_bw() + geom_line(size=1, colour="black") + theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold")) + theme_apa()
+
+
+ex5.samp.line
+```
+
+
+
+```{r}
+EmoVal_wo_TechDirect <- lme(DistractComb_Std ~ 1 + Has_Phone * Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone | Gender) #, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+
+```
+
+```{r}
+pairs(EmoVal_EMM_Int)
+```
+
+
+## Graphs
+
+### Without Tech Directions
+#### Violin
+```{r}
+
+
+ggplot(MegaAnalysisMasterGraphs_WithoutTechDirections, aes(x=Has_Phone, y=Emotional_Valance_Std, fill=Has_Phone, col=Has_Phone, na.rm=TRUE)) +
+    geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .2, adjust = 4)+
+    geom_point(position=position_jitter(width = .15),size = 1, alpha = 1/3)+
+    scale_fill_manual(values = c("#F26627", "#325D79"))+
+    scale_colour_manual(values = c("#F26627", "#325D79"))+
+    guides(fill = FALSE, col = FALSE, )+ 
+  facet_wrap(~Gender) + 
+  geom_boxplot(aes(x = as.numeric(Has_Phone)+ 0.25, y = Emotional_Valance_Std),outlier.shape = NA, alpha = 0.4, width = .1, colour = "BLACK") + 
+ stat_summary(fun.data = "mean_cl_normal", geom = "errorbar", width = 1/4, color = "black") + 
+ stat_summary(fun = "mean", geom = "point",shape = 23, stroke = 1, size = 1.5,  color = "black", fill = "gold") +
+  ylab('Emotional Valance Standarized by Paradigm')+ 
+  xlab('Condition') + 
+  theme_apa() + 
+  scale_y_continuous(breaks=seq(-4,4,1))
+```
+  theme(
+        axis.text.y = element_text(size = 14),
+    axis.text.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    axis.title.x = element_text(size = 16),
+    strip.text = element_text(size=20))
+  ) 
+  
+```{r}
+ggsave('Emotional Valance - Without Tech Directions.png', width = 6, height = 6) 
+```
+
+```{r}
+ggplot(MegaAnalysisMasterGraphs_WithoutTechDirections,, aes(x=Has_Phone, y=Emotional_Valance_Std, fill=Has_Phone, col=Has_Phone, na.rm=TRUE)) +
+    geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .2, adjust = 4)+
+    geom_point(position=position_jitter(width = .15),size = 1, alpha = 1/3)+
+    scale_fill_manual(values = c("#F26627", "#325D79"))+
+    scale_colour_manual(values = c("#F26627", "#325D79"))+
+    guides(fill = FALSE, col = FALSE, )+ 
+  geom_boxplot(aes(x = as.numeric(Has_Phone)+ 0.25, y = Emotional_Valance_Std),outlier.shape = NA, alpha = 0.4, width = .1, colour = "BLACK") + 
+ stat_summary(fun.data = "mean_cl_normal", geom = "errorbar", width = 1/4, color = "black") + 
+ stat_summary(fun = "mean", geom = "point",shape = 23, stroke = 1, size = 1.5,  color = "black", fill = "gold") +
+  ylab('Emotional Valance Standarized by Paradigm')+ 
+  xlab('Condition') + 
+  theme_apa() + 
+  scale_y_continuous(breaks=seq(-4,4,1))
+```
+
+geom_errorbar(aes(MegaAnalysisMasterGraphs_WithoutTechDirections, aes(x=Has_Phone, y=Emotional_Valance_Std, fill=Has_Phone, col=Has_Phone, na.rm=TRUE)) +
+  ylab('Emotional Valance Standarized by Paradigm')+ 
+  xlab('Condition') + 
+  theme_apa() + 
+  scale_y_continuous(breaks=seq(-4,4,1))
+  
+#### Bar Graphs
+```{r}
+ggplot(MegaAnalysisMasterGraphs_WithoutTechDirections, aes(x=Has_Phone, y=Emotional_Valance_Std, fill=Has_Phone, col=Has_Phone, na.rm=TRUE)) + 
+  geom_bar(position = position_dodge)
+   stat_summary(fun.data = "mean_cl_normal", geom = "errorbar",size = 20, width = 1, color = "black") + 
+   stat_summary(fun = "mean", geom = "point",shape = 23, stroke = 1, size = 15,  color = "black", fill = "gold") +
+   ylab('Emotional Valance Standarized by Paradigm')+ 
+   xlab('Condition') + 
+  theme_apa() 
+```
+
+## Tech Directions Only
+```{r}
+TechDirections_Tight$Gender <- as.factor(TechDirections_Tight$Gender)
+TechDirections_Tight$Has_Phone <- as.factor(TechDirections_Tight$Has_Phone)
+
+TechDirections_Tight$Gender <- recode_factor(TechDirections_Tight$Gender, `0` = "Female", `1` = "Male")
+TechDirections_Tight$Has_Phone<- recode_factor(TechDirections_Tight$Has_Phone, `0` = "No Phone", `1` = "Phone")
+
+TechDirections_TightGraphs <- subset(TechDirections_Tight, Gender == "Female" | Gender == "Male")
+
+TechDirections_TightGraphs <- subset(TechDirections_TightGraphs, Has_Phone == "No Phone"|  Has_Phone == "Phone")
+```
+
+
+```{r}
+
+
+ggplot(TechDirections_TightGraphs, aes(x=Has_Phone, y=Emotional_Valance_Std, fill=Has_Phone, col=Has_Phone, na.rm=TRUE)) +
+    geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .2, adjust = 4)+
+    geom_point(position=position_jitter(width = .15),size = 1, alpha = 1/3)+
+    scale_fill_manual(values = c("#F26627", "#325D79"))+
+    scale_colour_manual(values = c("#F26627", "#325D79"))+
+    guides(fill = FALSE, col = FALSE, )+ 
+  facet_wrap(~Gender) + 
+  geom_boxplot(aes(x = as.numeric(Has_Phone)+ 0.25, y = Emotional_Valance_Std),outlier.shape = NA, alpha = 0.4, width = .1, colour = "BLACK") + 
+ stat_summary(fun.data = "mean_cl_normal", geom = "errorbar", width = 1/4, color = "black") + 
+ stat_summary(fun = "mean", geom = "point", shape = 23, stroke = 1, size = 1.5,  color = "black", fill = "gold") +
+  ylab('Emotional Valance Standarized by Paradigm')+ 
+  xlab('Condition') + 
+  theme_apa() + 
+  scale_y_continuous(breaks=seq(-4,4,1))
+```
+
+
+
+
+```{r}
+ggsave('Emotional Valance - Tech Directions.png', width = 6, height = 6) 
+```
+
+
+```{r}
+ggplot(TechDirections_TightGraphs, aes(x=Gender, y=Emotional_Valance_Std, fill=Gender, na.rm=TRUE)) +
+    geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .2, adjust = 4)+
+    geom_point(position=position_jitter(width = .15),size = 1, alpha = 1/3)+
+    scale_fill_manual(values = c("#F26627", "#325D79"))+
+    scale_colour_manual(values = c("#F26627", "#325D79"))+
+    guides(fill = FALSE, col = FALSE, )+ 
+  geom_boxplot(aes(x = as.numeric(Has_Phone) + 0.2, y = Emotional_Valance_Std), outlier.shape = NA, alpha = 0.4, width = .3, colour = "BLACK") + 
+ stat_summary(fun.data = "mean_cl_normal", geom = "errorbar", width = 1/4, color = "black") + 
+ stat_summary(fun = "mean", geom = "point",shape = 23, stroke = 1, size = 1,  color = "black", fill = "gold") +
+  ylab('Mood Standarized - Tech Directions')+ 
+  xlab('Condition') + 
+  theme_apa() + 
+  scale_y_continuous(breaks=seq(-4,4,1))
+```
+
+
+
+
+```{r}
+ggsave('Emotional Valance - Gender Only - Tech Directions.png', width = 6, height = 6) 
+```
+
+## Social Connectedness
+```{r}
+ggplot(MegaAnalysisMasterGraphs, aes(x=Has_Phone, y=SocialConnection_Std, fill=Has_Phone, col=Has_Phone, na.rm=TRUE)) +
+    geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .2, adjust = 4)+
+    geom_point(position=position_jitter(width = .15),size = 1, alpha = 1/3)+
+    scale_fill_manual(values = c("#F26627", "#325D79"))+
+    scale_colour_manual(values = c("#F26627", "#325D79"))+
+    guides(fill = FALSE, col = FALSE, )+ 
+  facet_wrap(~Gender) + 
+  geom_boxplot(aes(x = as.numeric(Has_Phone)+ 0.25, y = SocialConnection_Std),outlier.shape = NA, alpha = 0.4, width = .1, colour = "BLACK") + 
+ stat_summary(fun.data = "mean_cl_normal", geom = "errorbar", width = 1/4, color = "black") + 
+ stat_summary(fun = "mean", geom = "point",shape = 23, stroke = 1, size = 1,  color = "black", fill = "gold") +
+  ylab('Social Connectedness Standarized by Paradigm')+ 
+  xlab('Condition') + 
+  theme_apa() + 
+  scale_y_continuous(breaks=seq(-4,4,1))
+```
+
+
+```{r}
+ggsave('Social Connectedness.png', width = 6, height = 6) 
+```
+
+
+# Analyses
+
+
+
+```{r}
+MegaAnalysisMaster$Gender_Num<- as.numeric(MegaAnalysisMaster$Gender)
+MegaAnalysisMaster$Has_Phone_Num<- as.numeric(MegaAnalysisMaster$Has_Phone)
+```
+
+
+## Social Connectedness
+
+
+```{r}
+Social_Connected_Model2.1 <- lmer(SocialConnection_Std ~ Has_Phone + (1 + Has_Phone| ParadigmsCombined), MegaAnalysisMaster)
+
+summary(Social_Connected_Model2.1)
+```
+
+```{r}
+lm.beta.lmer <- function(mod) {
+   b <- fixef(mod)[-1]
+   sd.x <- apply(getME(mod,"X")[,-1],2,sd)
+   sd.y <- sd(getME(mod,"y"))
+   b*sd.x/sd.y
+}
+```
+
+```{r}
+lm.beta.lmer(Social_Connected_Model2.1)
+```
+
+
+
+```{r}
+plotNormX(MegaAnalysisMaster$Emotional_Valance_Std)
+```
+

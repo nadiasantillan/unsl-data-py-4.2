@@ -1,0 +1,295 @@
+---
+title: "Mega Analysis - Original Preregistered Analysis"
+author: "Matthew Leitao"
+date: "`r Sys.Date()`"
+output:
+   html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, include=FALSE}
+if(!require(haven)) {install.packages("haven")}
+if(!require(tidyverse))  {install.packages("tidyverse")}
+if(!require(psych))  {install.packages("psych")}
+if(!require(nlme))  {install.packages("nlme")}
+if(!require(psychometric))  {install.packages("psychometric")}
+if(!require(readr)) {install.packages("readr")}
+if(!require(reghelper)) {install.packages("reghelper")}
+if(!require(plyr))  {install.packages("plyr")}
+if(!require(sjPlot))  {install.packages("sjPlot")}
+if(!require(emmeans))  {install.packages("emmeans")}
+if(!require(MuMIn))  {install.packages("MuMIn")}
+if(!require(EMAtools))  {install.packages("EMAtools")}
+if(!require(effectsize))  {install.packages("effectsize")}
+if(!require(report))  {install.packages("report")}
+if(!require(modelsummary))  {install.packages("modelsummary")}
+
+```
+
+
+
+```{r}
+MegaAnalysisMaster <- read_sav("~/Library/CloudStorage/GoogleDrive-mrl118@georgetown.edu/.shortcut-targets-by-id/17blQzOWTKiWNtK6-dvzKZz70HrnrIGX-/Matthew/Mega-analysis Tech/Full Data/MegaAnalysisMaster.sav")
+
+```
+
+
+# Making Variables Factor
+```{r}
+MegaAnalysisMaster$Gender <- as.factor(MegaAnalysisMaster$Gender)
+MegaAnalysisMaster$Has_Phone <- as.factor(MegaAnalysisMaster$Has_Phone)
+
+MegaAnalysisMaster$Gender <- recode_factor(MegaAnalysisMaster$Gender, `0` = "Female", `1` = "Male")
+MegaAnalysisMaster$Has_Phone<- recode_factor(MegaAnalysisMaster$Has_Phone, `0` = "No Phone", `1` = "Phone")
+
+MegaAnalysisMaster$ParadigmsCombined_Factor <- recode_factor(MegaAnalysisMaster$ParadigmsCombined, `1` = "Tech Directions", `2` = "Tech Restraunt", `3` = "Waiting Alone", `4` = "Waiting Together", `5` = "Parent Study", `6` = "Lunch Study")
+
+MegaAnalysisMasterGraphs <- subset(MegaAnalysisMaster, Gender == "Female" | Gender == "Male")
+
+MegaAnalysisMasterGraphs <- subset(MegaAnalysisMasterGraphs, Has_Phone == "No Phone"|  Has_Phone == "Phone")
+
+
+```
+
+# PreRegistered Models
+We are using a form of stepwise regression where we are including in more variables with each iterated analysis. 
+
+Step 1:
+Phone/No Phone
+
+Step 2:
+Phone/No Phone 
+Gender
+Age
+Ethnicity
+
+Step 3:
+Phone/No Phone
+Gender + Interaction between Gender and Phone/No Phone 
+Age 
+Ethnicity
+
+Step 4:
+Phone/No Phone 
+Gender + Interaction between Gender and Phone/No Phone 
+Age
+Ethnicity
+Phone Dependence
+How Phone was Used
+
+Step 5a:
+Phone/No Phone 
+Gender + Interaction between Gender and Phone/No Phone 
+Age
+Ethnicity
+Phone Dependence + Interaction between Gender and Phone/No Phone 
+How Phone was Used
+
+Step 5b:
+Phone/No Phone 
+Gender  + Interaction between Gender and Phone/No Phone 
+Age
+Ethnicity
+Phone Dependence + Interaction between Gender and Phone/No Phone 
+How Phone was Used  + Interaction between Gender and Phone/No Phone 
+
+# Affect Valence
+## Model 1
+```{r}
+contrasts(MegaAnalysisMaster$ParadigmsCombined_Factor) = contr.sum(6)
+
+OrigEmoInitial <- lm(Emotional_Valance_Std ~ Has_Phone, MegaAnalysisMaster)
+summary(OrigEmoInitial)
+```
+
+
+## Model 2
+### w/ Ethnicity
+```{r}
+
+OrigEmoInitial2 <- lm(Emotional_Valance_Std ~ Has_Phone + Gender + Age + IsOtherRace + IsMultiRacial + IsMiddleEastern + IsHispanic + IsFirstNation + IsAsian + IsBlack, MegaAnalysisMaster)
+summary(OrigEmoInitial2)
+```
+
+ 
+### w/o Ethnicity
+```{r}
+OrigEmoInitial2.5 <- lm(Emotional_Valance_Std ~ Has_Phone + Gender + Age, MegaAnalysisMaster)
+summary(OrigEmoInitial2.5)
+```
+
+## Model 3 
+### w/ Ethnicity
+```{r}
+OrigEmoInitial3 <- lm(Emotional_Valance_Std ~ Has_Phone * Gender + Age + IsOtherRace + IsMultiRacial + IsMiddleEastern + IsHispanic + IsFirstNation + IsAsian + IsBlack, MegaAnalysisMaster)
+summary(OrigEmoInitial3)
+```
+
+
+### w/o Ethnicity
+```{r}
+OrigEmoInitial3.5 <- lm(Emotional_Valance_Std ~ Has_Phone * Gender + Age, MegaAnalysisMaster)
+summary(OrigEmoInitial3.5)
+```
+
+## Model 4
+### w/ Ethnicity
+```{r}
+OrigEmoInitial4 <- lm(Emotional_Valance_Std ~ Has_Phone * Gender + Age + IsOtherRace + IsMultiRacial + IsMiddleEastern + IsHispanic + IsFirstNation + IsAsian + IsBlack + PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigEmoInitial4)
+```
+
+### w/o Ethnicity
+```{r}
+OrigEmoInitial4.5 <- lm(Emotional_Valance_Std ~ Has_Phone * Gender + Age + PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigEmoInitial4.5)
+```
+
+
+## Model 5a
+### w/ Ethnicity
+```{r}
+OrigEmoInitial5a <- lm(Emotional_Valance_Std ~ Has_Phone * Gender + Age + IsOtherRace + IsMultiRacial + IsMiddleEastern + IsHispanic + IsFirstNation + IsAsian + IsBlack + Has_Phone * Gender * PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigEmoInitial5a)
+```
+
+
+### w/o Ethnicity
+```{r}
+OrigEmoInitial5a.5 <- lm(Emotional_Valance_Std ~ Has_Phone * Gender + Age + Has_Phone * Gender * PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigEmoInitial5a.5)
+```
+
+
+## Combined Table
+```{r}
+OrigEmoModels <- list(OrigEmoInitial, OrigEmoInitial2, OrigEmoInitial3, OrigEmoInitial4, OrigEmoInitial5a
+)
+```
+
+
+```{r}
+modelsummary(OrigEmoModels , fmt = 2, estimate = "{estimate}{stars}", statistic = c("std.error"), stars = c("*" = .05, "**" = .01, "***" = .001), gof_map = c("nobs", "r.squared", "adj.r.squared"), notes = "Note. * = .05, ** = .01, *** = .001", title = "Original Preregistered OLS Regressions Affect Valence")
+```
+
+## Combined Table w/o Ethnicity
+```{r}
+OrigEmoModels.5 <- list(OrigEmoInitial, OrigEmoInitial2.5,  OrigEmoInitial3.5, OrigEmoInitial4.5, OrigEmoInitial5a.5
+)
+```
+
+
+```{r}
+modelsummary(OrigEmoModels.5 , fmt = 2, estimate = "{estimate}{stars}", statistic = c("std.error"), stars = c("*" = .05, "**" = .01, "***" = .001), gof_map = c("nobs", "r.squared", "adj.r.squared"), notes = "Note. * = .05, ** = .01, *** = .001", title = "Original Preregistered OLS Regressions Affect Valence")
+```
+
+
+# Social Connectedness
+## Model 1
+```{r}
+OrigSocInitial <- lm(SocialConnection_Std ~ Has_Phone, MegaAnalysisMaster)
+summary(OrigSocInitial)
+```
+
+## Model 2
+### w/ Ethnicity
+```{r}
+
+OrigSocInitial2 <- lm(SocialConnection_Std ~ Has_Phone + Gender + Age + IsOtherRace + IsMultiRacial + IsMiddleEastern + IsHispanic + IsFirstNation + IsAsian + IsBlack, MegaAnalysisMaster)
+summary(OrigSocInitial2)
+```
+
+
+ 
+### w/o Ethnicity
+```{r}
+OrigSocInitial2.5 <- lm(SocialConnection_Std ~ Has_Phone + Gender + Age, MegaAnalysisMaster)
+summary(OrigSocInitial2.5)
+```
+
+## Model 3 
+### w/ Ethnicity
+```{r}
+OrigSocInitial3 <- lm(SocialConnection_Std ~ Has_Phone * Gender + Age + IsOtherRace + IsMultiRacial + IsMiddleEastern + IsHispanic + IsFirstNation + IsAsian + IsBlack, MegaAnalysisMaster)
+summary(OrigSocInitial3)
+```
+
+
+### w/o Ethnicity
+```{r}
+OrigSocInitial3.5 <- lm(SocialConnection_Std ~ Has_Phone * Gender + Age, MegaAnalysisMaster)
+summary(OrigSocInitial3.5)
+```
+
+## Model 4
+### w/ Ethnicity
+```{r}
+OrigSocInitial4 <- lm(SocialConnection_Std ~ Has_Phone * Gender + Age + IsOtherRace + IsMultiRacial + IsMiddleEastern + IsHispanic + IsFirstNation + IsAsian + IsBlack + PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigSocInitial4)
+```
+
+### w/o Ethnicity
+```{r}
+OrigSocInitial4.5 <- lm(SocialConnection_Std ~ Has_Phone * Gender + Age + PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigSocInitial4.5)
+```
+
+
+## Model 5a
+### w/ Ethnicity
+```{r}
+OrigSocInitial5a <- lm(SocialConnection_Std ~ Has_Phone * Gender + Gender + Age + IsOtherRace + IsMultiRacial + IsMiddleEastern + IsHispanic + IsFirstNation + IsAsian + IsBlack + Has_Phone * Gender * PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigSocInitial5a)
+```
+
+
+### w/o Ethnicity
+```{r}
+OrigSocInitial5a.5 <- lm(SocialConnection_Std ~ Has_Phone * Gender + Age + Has_Phone * Gender * PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigSocInitial5a.5)
+```
+
+## Model 5b
+### w/ Ethnicity
+```{r}
+OrigSocInitial5a <- lm(SocialConnection_Std ~ Has_Phone * Gender + Age + IsOtherRace + IsMultiRacial + IsMiddleEastern + IsHispanic + IsFirstNation + IsAsian + IsBlack + Has_Phone*PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigSocInitial5a)
+```
+
+
+### w/o Ethnicity
+```{r}
+OrigSocInitial5a.5 <- lm(SocialConnection_Std ~ Has_Phone * Gender + Age + Has_Phone * Gender*PhoneDependence_Std, MegaAnalysisMaster)
+summary(OrigSocInitial5a.5)
+```
+
+## Combined Table
+```{r}
+OrigSocModels <- list(OrigSocInitial, OrigSocInitial2, OrigSocInitial3, OrigSocInitial4, OrigSocInitial5a
+)
+```
+
+
+```{r}
+modelsummary(OrigSocModels , fmt = 2, estimate = "{estimate}{stars}", statistic = c("std.error"), stars = c("*" = .05, "**" = .01, "***" = .001), gof_map = c("nobs", "r.squared", "adj.r.squared"), notes = "Note. * = .05, ** = .01, *** = .001", title = "Original Preregistered OLS Regressions Social Connectedness")
+```
+
+## Combined Table w/o Ethnicity
+```{r}
+OrigSocModels.5 <- list(OrigSocInitial, OrigSocInitial2.5, OrigSocInitial3.5, OrigSocInitial4.5, OrigSocInitial5a.5
+)
+```
+
+
+```{r}
+modelsummary(OrigSocModels.5 , fmt = 2, estimate = "{estimate}{stars}", statistic = c("std.error"), stars = c("*" = .05, "**" = .01, "***" = .001), gof_map = c("nobs", "r.squared", "adj.r.squared"), notes = "Note. * = .05, ** = .01, *** = .001", title = "Original Preregistered OLS Regressions Social Connectedness")
+```
+

@@ -1,0 +1,1650 @@
+---
+title: "Mega Analysis - Additional Analyses"
+author: "Matthew Leitao"
+date: "6/15/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r loading packages, include=FALSE}}
+
+if(!require(haven)) {install.packages("haven")}
+if(!require(tidyverse))  {install.packages("tidyverse")}
+if(!require(psych))  {install.packages("psych")}
+if(!require(ggdist))  {install.packages("ggdist")}
+if(!require(gghalves))  {install.packages("gghalves")}
+if(!require(papaja))  {install.packages("papaja")}
+if(!require(car))  {install.packages("car")}
+if(!require(lme4))  {install.packages("lme4")}
+if(!require(cowplot))  {install.packages("cowplot")}
+if(!require(ggstatsplot))  {install.packages("ggstatsplot")}
+if(!require(papaja))  {install.packages("papaja")}
+if(!require(nlme))  {install.packages("nlme")}
+if(!require(psychometric))  {install.packages("psychometric")}
+if(!require(gamlj))  {install.packages("gamlj")}
+if(!require(readr)) {install.packages("readr")}
+if(!require(reghelper)) {install.packages("reghelper")}
+if(!require(plyr))  {install.packages("plyr")}
+if(!require(sjPlot))  {install.packages("sjPlot")}
+if(!require(emmeans))  {install.packages("emmeans")}
+if(!require(performance))  {install.packages("performance")}
+if(!require(MuMIn))  {install.packages("MuMIn")}
+if(!require(EMAtools))  {install.packages("EMAtools")}
+if(!require(emmip))  {install.packages("emmip")}
+if(!require(effectsize))  {install.packages("effectsize")}
+
+source("R_rainclouds.R")
+
+```
+
+```{r}
+MegaAnalysisMaster <- read_sav("/Volumes/GoogleDrive/My Drive/Matthew/Mega-analysis Tech/Full Data/MegaAnalysisMaster.sav")
+
+TechDirections_Tight <- read_sav("/Volumes/GoogleDrive/My Drive/Matthew/Mega-analysis Tech/Full Data/Tech_Directions_Tight.sav")
+
+```
+
+```{r}
+setwd("/Volumes/GoogleDrive/My Drive/Matthew/Mega-analysis Tech/R Code/Mega Analysis")
+#setwd("/Users/matthew/R Projects/Mega Analysis Alternative")
+
+```
+
+# Descriptive Statistics
+
+## Age
+```{r}
+describe(MegaAnalysisMaster$Age)
+```
+## Gender
+```{r}
+table(MegaAnalysisMaster$Gender)
+
+1231+518
+
+1231/1749
+```
+
+
+
+```{r}
+count(MegaAnalysisMaster$ParadigmsCombined_Factor)
+```
+```{r}
+describe(MegaAnalysisMaster$SocialConnection_Std)
+
+describe(MegaAnalysisMaster$SocialConnection_Std)
+```
+
+
+# Correlations
+### Correlating Social Connectedness
+
+```{r}
+print('Tech Directions')
+TechDirections_Tight %>%
+    dplyr::select(SocialConnection, Emotional_Valance, Has_Phone, Age, Gender) %>%
+      corr.test()
+
+print('Lunch Study')
+LunchStudy_Tight %>%
+    dplyr::select(SocialConnection, Emotional_Valance, Has_Phone, Age, Gender) %>%
+      corr.test()
+
+print('Tech Restaurant')
+TechRestaurant_Tight %>%
+    dplyr::select(SocialConnection, Emotional_Valance, Has_Phone, Age, Gender) %>%
+      corr.test()
+
+print('Waiting Together')
+Waiting_Together_Tight %>%
+    dplyr::select(SocialConnection, Emotional_Valance, Has_Phone, Age, Gender) %>%
+      corr.test()
+
+print('Waiting Alone')
+Waiting_Alone_Tight %>%
+    dplyr::select(SocialConnection, Emotional_Valance, Has_Phone, Age, Gender) %>%
+      corr.test()
+
+print('Science World')
+ScienceWorld_Tight %>%
+    dplyr::select(SocialConnection_Std, Emotional_Valance_Std, Has_Phone, Age, Gender) %>%
+      corr.test()
+
+print('Master File')
+MegaAnalysisMaster %>%
+    dplyr::select(SocialConnection_Std, Emotional_Valance_Std, Has_Phone, Gender, Age) %>%
+      corr.test()
+```
+
+
+# MLM Initial Interaction
+
+## Affect Valence
+```{r}
+contrasts(MegaAnalysisMaster$ParadigmsCombined_Factor) = contr.sum(6)
+
+InitialModel_MLM_EmoValence <- lme(Emotional_Valance_Std ~ 1 + + Has_Phone*Gender + Has_Phone* ParadigmsCombined_Factor  + Age + Gender ,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined_Factor, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(InitialModel_MLM_EmoValence)
+```
+
+
+```{r}
+tab_model(InitialModel_MLM_EmoValence, digits = 3, digits.re = 5)
+```
+
+
+## Social Connectedness
+```{r}
+contrasts(MegaAnalysisMaster$ParadigmsCombined_Factor) = contr.sum(6)
+InitialModel_MLM_SocialConnection <- lme(SocialConnection_Std~ 1 + Has_Phone * Gender + Has_Phone*ParadigmsCombined_Factor + Gender + Age + Gender ,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined_Factor, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(InitialModel_MLM_SocialConnection)
+```
+
+
+```{r}
+tab_model(InitialModel_MLM_SocialConnection, digits = 3, digits.re = 5)
+```
+
+# Tech Directions Additional Analysis
+
+## Social Connectedness Predicting Mood
+
+### Main Effects 
+
+```{r}
+
+TechDirect.SocConnect_Mood.1 <-
+        lm(Emotional_Valance_Std ~ Has_Phone +  Gender + SocialConnection_Std, 
+           TechDirections_Tight)
+
+summary(TechDirect.SocConnect_Mood.1)
+
+```
+
+
+```{r}
+
+TechDirect.SocConnect_Mood.1.5 <-
+        lm(Emotional_Valance_Std ~ Has_Phone +  Gender,
+           TechDirections_Tight)
+
+summary(TechDirect.SocConnect_Mood.1.5)
+
+```
+
+### Interactions
+
+#### Has Phone x Gender Only
+```{r}
+
+TechDirect.SocConnect_Mood.2 <-
+        lm(Emotional_Valance_Std ~ Has_Phone * Gender + SocialConnection_Std,
+           TechDirections_Tight)
+
+summary(TechDirect.SocConnect_Mood.2)
+
+```
+#### Has Phone x Gender Only
+```{r}
+
+TechDirect.SocConnect_Mood.3 <-
+        lm(Emotional_Valance_Std ~ Has_Phone * Gender + Has_Phone * SocialConnection_Std + Gender * SocialConnection_Std,
+           TechDirections_Tight)
+
+summary(TechDirect.SocConnect_Mood.3)
+
+```
+```{r}
+anova(TechDirect.SocConnect_Mood.1, TechDirect.SocConnect_Mood.2, TechDirect.SocConnect_Mood.3)
+```
+
+#### Simple Effects
+
+This is the simple effects of phone when seperating by gender.
+```{r}
+
+TechDirect.SocConnect_Mood_SimpEff <- emmeans(TechDirect.SocConnect_Mood.2, 'Has_Phone', by = 'Gender') 
+
+TechDirect.SocConnect_Mood_SimpEff
+
+contrast(TechDirect.SocConnect_Mood_SimpEff)
+```
+
+```{r}
+pairs(TechDirect.SocConnect_Mood_SimpEff)
+```
+```{r}
+
+TechDirect.SocConnect_Mood_SimpEff.2 <- emmip(TechDirect.SocConnect_Mood.2, Has_Phone ~ Gender) 
+
+SocConnect_EmmeansData <- TechDirect.SocConnect_Mood_SimpEff.2$data
+
+SocConnect_EmmeansData$interval <- SocConnect_EmmeansData$SE * 1.96
+
+ggplot(SocConnect_EmmeansData, aes(x=Has_Phone, y=yvar, fill=Has_Phone)) +
+  facet_wrap(~Gender) + 
+  geom_point(position=position_dodge(), stat="identity",
+           colour='black') +
+  geom_errorbar(aes(ymin=yvar-interval, ymax=yvar+interval), width=.2) + theme_apa()
+
+```
+
+```{r}
+ggsave('Mood - EMMeans - Controlling For Social Connectedness - Tech Directions.png', width = 6, height = 6) 
+```
+
+
+## Difficulty Finding Building
+
+One idea for the disparity between Tech directions Gender effect and the other studies Gender effect is that men and women may have different levels of difficulty finding the builiding which lead women to benefit more from using their phone than men. So I am running 2 types of models
+
+1.Gender and Condition predicting Difficulty of finding building
+2.Gender, Condition, and Difficulty of finding building predicting Mood
+
+### Reverse Coding
+```{r}
+TechDirections_Tight$Ease_locating.building <- ((TechDirections_Tight$Difficulty_locating.building - 7) * -1)
+
+describe(TechDirections_Tight$Difficulty_locating.building)
+
+describe(TechDirections_Tight$Ease_locating.building)
+```
+
+
+### Gender and Condtion predicting Difficulty
+
+#### Main Effects
+
+We find a main effect of phone, with those with their phone report a reduction in difficulty in finding the buildings. This at least is a good indicator that complimentarity is happened.
+There is no gender main effect.
+```{r}
+
+TechDirect.FindingBuilding.1 <-
+        lm(Ease_locating.building ~ Has_Phone + Gender,
+           TechDirections_Tight)
+
+summary(TechDirect.FindingBuilding.1)
+
+```
+
+
+#### Interactions
+In running the interaction, we find no interaction between Gender and Phones. So Men and Women seem to have the same effect 
+```{r}
+
+TechDirect.FindingBuilding.2 <-
+        lm(Ease_locating.building~ Has_Phone * Gender,
+           TechDirections_Tight)
+
+summary(TechDirect.FindingBuilding.2)
+
+```
+```{r}
+anova(TechDirect.FindingBuilding.1, TechDirect.FindingBuilding.2)
+```
+
+#### Simple Effects
+
+This is the simple effects of phone when seperating by gender.
+```{r}
+
+TechDirect.FindingBuilidng_SimpEff <- emmeans(TechDirect.FindingBuilding.2, 'Has_Phone', by = 'Gender') 
+TechDirect.FindingBuilidng_SimpEff
+
+contrast(TechDirect.FindingBuilidng_SimpEff)
+```
+```{r}
+pairs(TechDirect.FindingBuilidng_SimpEff)
+```
+
+##### Graph
+```{r}
+TechDirections_Tight$Gender <- as.factor(TechDirections_Tight$Gender)
+TechDirections_Tight$Has_Phone <- as.factor(TechDirections_Tight$Has_Phone)
+
+TechDirections_Tight$Gender <- recode_factor(TechDirections_Tight$Gender, `0` = "Female", `1` = "Male")
+TechDirections_Tight$Has_Phone<- recode_factor(TechDirections_Tight$Has_Phone, `0` = "No Phone", `1` = "Phone")
+
+TechDirections_TightGraphs <- subset(TechDirections_Tight, Gender == "Female" | Gender == "Male")
+
+TechDirections_TightGraphs <- subset(TechDirections_TightGraphs, Has_Phone == "No Phone"|  Has_Phone == "Phone")
+```
+
+
+```{r}
+
+
+ggplot(TechDirections_TightGraphs, aes(x=Has_Phone, y=Difficulty_locating.building, fill=Has_Phone, col=Has_Phone, na.rm=TRUE)) +
+    geom_flat_violin(position = position_nudge(x = .2, y = 0), alpha = .2, adjust = 4)+
+    geom_point(position=position_jitter(width = .15),size = 1, alpha = 1/3)+
+    scale_fill_manual(values = c("#F26627", "#325D79"))+
+    scale_colour_manual(values = c("#F26627", "#325D79"))+
+    guides(fill = FALSE, col = FALSE, )+ 
+  facet_wrap(~Gender) + 
+  geom_boxplot(aes(x = as.numeric(Has_Phone)+ 0.25, y = Difficulty_locating.building),outlier.shape = NA, alpha = 0.4, width = .1, colour = "BLACK") + 
+ stat_summary(fun.data = "mean_cl_normal", geom = "errorbar", width = 1/4, color = "black") + 
+ stat_summary(fun = "mean", geom = "point", shape = 23, stroke = 1, size = 1.5,  color = "black", fill = "gold") +
+  ylab('Ratings of Diffulty of Finding The Building')+ 
+  xlab('Condition') + 
+  theme_apa() + 
+  scale_y_continuous(breaks=seq(0,7,1))
+```
+
+
+
+
+```{r}
+ggsave('Difficulty Finding Building by Phone & Gender - Tech Directions.png', width = 6, height = 6) 
+```
+
+### Gender, Condition, and Difficulty Predicting Mood
+
+We find a similar outcome to wha
+
+#### Main Effects 
+
+```{r}
+
+TechDirect.FindingBuilding_Mood.1 <-
+        lm(Emotional_Valance_Std ~ Has_Phone +  Gender  +  Ease_locating.building + Age,
+           TechDirections_Tight)
+
+summary(TechDirect.FindingBuilding_Mood.1)
+
+```
+
+
+```{r}
+summary(TechDirect.SocConnect_Mood.1)
+
+```
+
+```{r}
+summary(TechDirect.SocConnect_Mood.1.5)
+```
+
+#### Interactions
+
+##### Has Phone x Gender Only
+```{r}
+
+TechDirect.FindingBuilding_Mood.3 <-
+        lm(Emotional_Valance_Std ~ Has_Phone * Gender + Ease_locating.building + Age,
+           TechDirections_Tight)
+
+summary(TechDirect.FindingBuilding_Mood.3)
+
+```
+
+ ##### Has Phone X Gender + Difficulty - All
+
+```{r}
+
+TechDirect.FindingBuilding_Mood.4 <-
+        lm(Emotional_Valance_Std ~ Has_Phone * Gender + SocialConnection_Std + Ease_locating.building + Age,
+           TechDirections_Tight)
+
+summary(TechDirect.FindingBuilding_Mood.4)
+
+```
+
+```{r}
+
+TechDirect.FindingBuilding_Mood.5 <-
+        lm(Emotional_Valance_Std ~ Has_Phone * Gender+ Has_Phone * SocialConnection_Std  + Difficulty_locating.building ,
+           TechDirections_Tight)
+
+summary(TechDirect.FindingBuilding_Mood.5)
+
+```
+
+##### Simple Effects
+
+This is the simple effects of phone when seperating by gender.
+```{r}
+
+TechDirect.FindingBuilidng_Mood_SimpEff <- emmeans(TechDirect.FindingBuilding_Mood.3, 'Has_Phone', by = 'Gender') 
+
+TechDirect.FindingBuilidng_Mood_SimpEff
+
+contrast(TechDirect.FindingBuilidng_Mood_SimpEff)
+```
+
+```{r}
+pairs(TechDirect.FindingBuilidng_Mood_SimpEff)
+```
+
+```{r}
+print(eff_size(TechDirect.FindingBuilidng_Mood_SimpEff, sigma = sigma(TechDirect.FindingBuilding_Mood.3), edf = df.residual(TechDirect.FindingBuilding_Mood.3)))
+```
+
+###### Graph
+```{r}
+
+TechDirect.FindingBuilidng_Mood_SimpEff.3 <- emmip(TechDirect.FindingBuilding_Mood.1, Has_Phone ~ Gender) 
+
+FindingBuilding_EmmeansData <- TechDirect.FindingBuilidng_Mood_SimpEff.3$data
+
+FindingBuilding_EmmeansData$interval <- FindingBuilding_EmmeansData$SE * 1.96
+
+ggplot(FindingBuilding_EmmeansData, aes(x=Has_Phone, y=yvar, fill=Has_Phone)) +
+  facet_wrap(~Gender) + 
+  geom_point(position=position_dodge(), stat="identity",
+           colour='black') +
+  geom_errorbar(aes(ymin=yvar-interval, ymax=yvar+interval), width=.2) + theme_apa()
+
+```
+
+
+```{r}
+ggsave('Mood - EMMeans - When Controlling for Difficulty Finding Building - Tech Directions.png', width = 6, height = 6) 
+```
+
+
+###### Graph
+```{r}
+
+TechDirect.FindingBuilidng_Mood_SimpEff.4 <- emmip(TechDirect.FindingBuilding_Mood.4, Has_Phone ~ Gender) 
+
+FindingBuilding_EmmeansData.4 <- TechDirect.FindingBuilidng_Mood_SimpEff.4$data
+
+FindingBuilding_EmmeansData.4$interval <- FindingBuilding_EmmeansData.4$SE * 1.96
+
+ggplot(FindingBuilding_EmmeansData.4, aes(x=Has_Phone, y=yvar, fill=Has_Phone)) +
+  facet_wrap(~Gender) + 
+  geom_point(position=position_dodge(), stat="identity",
+           colour='black') +
+  geom_errorbar(aes(ymin=yvar-interval, ymax=yvar+interval), width=.2) + theme_apa()
+
+```
+
+
+```{r}
+ggsave('Mood - EMMeans - When Controlling for Difficulty Finding Building Interaction - Tech Directions.png', width = 6, height = 6) 
+```
+
+
+```{r}
+
+TechDirect.FindingBuilidng_Mood_SimpEff.2 <- emmeans(TechDirect.FindingBuilding_Mood.3, 'Gender' , by = 'Has_Phone') 
+
+TechDirect.FindingBuilidng_Mood_SimpEff.2
+
+contrast(TechDirect.FindingBuilidng_Mood_SimpEff.2)
+```
+
+```{r}
+pairs(TechDirect.FindingBuilidng_Mood_SimpEff.2)
+```
+
+##### Phone x Gender w/o Social Interactions
+```{r}
+
+TechDirect.FindingBuilding_Mood.6 <-
+        lm(Emotional_Valance_Std ~ Has_Phone * Gender +  Difficulty_locating.building,
+           TechDirections_Tight)
+
+summary(TechDirect.FindingBuilding_Mood.6)
+
+```
+
+
+
+
+```{r}
+
+TechDirect.FindingBuilidng_Mood_SimpEff.6 <- emmeans(TechDirect.FindingBuilding_Mood.6, 'Has_Phone', by = 'Gender') 
+
+TechDirect.FindingBuilidng_Mood_SimpEff.6
+
+contrast(TechDirect.FindingBuilidng_Mood_SimpEff)
+```
+
+```{r}
+pairs(TechDirect.FindingBuilidng_Mood_SimpEff.6)
+```
+
+###### Graph
+```{r}
+
+TechDirect.FindingBuilidng_Mood_SimpEff.6 <- emmip(TechDirect.FindingBuilding_Mood.6, Has_Phone ~ Gender) 
+
+FindingBuilding_EmmeansData.6 <- TechDirect.FindingBuilidng_Mood_SimpEff.6$data
+
+FindingBuilding_EmmeansData.6$interval <- FindingBuilding_EmmeansData.6$SE * 1.96
+
+ggplot(FindingBuilding_EmmeansData.6, aes(x=Has_Phone, y=yvar, fill=Has_Phone)) +
+  facet_wrap(~Gender) + 
+  geom_point(position=position_dodge(), stat="identity",
+           colour='black') +
+  geom_errorbar(aes(ymin=yvar-interval, ymax=yvar+interval), width=.2) + theme_apa()
+
+```
+
+
+```{r}
+ggsave('Mood - EMMeans - When Controlling for Difficulty Finding Building Only - Tech Directions.png', width = 6, height = 6) 
+```
+
+## Number Of Social Interactions
+Social.Interactions_#
+
+### Gender and Condtion predicting Difficulty
+
+#### Main Effects
+
+We find a main effect of phone, with those with their phone reporting less social interactions. This at least is a good indicator that displacement is happened.
+There is no gender main effect.
+```{r}
+
+TechDirect.SocialInteraction.1 <-
+        lm(`Social.Interactions_#` ~ Has_Phone + Gender,
+           TechDirections_Tight)
+
+summary(TechDirect.SocialInteraction.1)
+
+```
+
+
+#### Interactions
+
+In running the interaction, we find no interaction between Gender and Phones. So Men and Women seem to have the same effect 
+```{r}
+
+TechDirect.SocialInteraction.2 <-
+        lm(`Social.Interactions_#` ~ Has_Phone * Gender,
+           TechDirections_Tight)
+
+summary(TechDirect.SocialInteraction.2)
+
+```
+
+```{r}
+anova(TechDirect.SocialInteraction.1, TechDirect.SocialInteraction.2)
+```
+
+#### Simple Effects
+
+This is the simple effects of phone when seperating by gender.
+```{r}
+
+TechDirect.SocialInteraction_SimpEff <- emmeans(TechDirect.SocialInteraction.2, 'Has_Phone', by = 'Gender') 
+TechDirect.SocialInteraction_SimpEff
+
+contrast(TechDirect.SocialInteraction_SimpEff)
+```
+
+```{r}
+pairs(TechDirect.SocialInteraction_SimpEff)
+```
+
+
+### Gender, Condition, and # of Social Interactions Predicting Mood
+
+We find a similar outcome to what we had before, though social interaction did not predict emotional valance. One of the key things to note about this analysis is that we lose degrees of freedom because the question about the number of social interactions was not asked during the first experiment. So there is not enough power to find larger effects, which is something to keep in mind. That direcitonality will be the best indicator for the moment.
+
+#### Main Effects 
+
+```{r}
+
+TechDirect.SocialInteraction_Mood.1 <-
+        lm(Emotional_Valance_Std ~ Has_Phone +  Gender + SocialConnection_Std +  Difficulty_locating.building +  `Social.Interactions_#` ,
+           TechDirections_Tight)
+
+summary(TechDirect.SocialInteraction_Mood.1)
+
+```
+
+
+#### Interactions
+
+##### Phone Gender Interaction Only
+We still get a significant interaction between gender and phone when controlling for number of social interactions.
+```{r}
+
+TechDirect.SocialInteraction_Mood.3 <-
+        lm(Emotional_Valance_Std ~ Has_Phone * Gender + SocialConnection_Std +  Difficulty_locating.building + `Social.Interactions_#` ,
+           TechDirections_Tight)
+
+summary(TechDirect.SocialInteraction_Mood.3)
+
+```
+
+##### Interction All
+
+In this interaction we find that only one is significnant and it's the interaction between having phone and number of social interactions. this may be because of overspecifying this model so for the next step I am going to reduce the interaction only to Phone and Social Interactions to accompany the phone and gender interaction.
+
+```{r}
+
+TechDirect.SocialInteraction_Mood.4 <-
+        lm(Emotional_Valance_Std ~ Has_Phone * Gender * `Social.Interactions_#` ,
+           TechDirections_Tight)
+
+summary(TechDirect.SocialInteraction_Mood.4)
+
+```
+
+##### Phone x Gender + Phone x Social Interactions
+```{r}
+
+TechDirect.SocialInteraction_Mood.5 <-
+        lm(Emotional_Valance_Std ~ Has_Phone * Gender + SocialConnection_Std +  Difficulty_locating.building + Has_Phone * `Social.Interactions_#` ,
+           TechDirections_Tight)
+
+summary(TechDirect.SocialInteraction_Mood.5)
+
+```
+
+###### Simple Effects
+
+##### With Social Interaction as a Control
+
+This is the simple effects of phone when seperating by gender.
+```{r}
+
+TechDirect.SocialInteraction_Mood_SimpEff.1 <- emmeans(TechDirect.SocialInteraction_Mood.3, 'Has_Phone', by = 'Gender') 
+TechDirect.SocialInteraction_Mood_SimpEff.1
+
+contrast(TechDirect.SocialInteraction_Mood_SimpEff.1)
+```
+
+```{r}
+pairs(TechDirect.SocialInteraction_Mood_SimpEff.1)
+```
+
+##### With Social Interaction as a Moderator
+```{r}
+
+TechDirect.SocialInteraction_Mood_SimpEff.2 <- emmeans(TechDirect.SocialInteraction_Mood.5, 'Has_Phone', by = 'Gender') 
+TechDirect.SocialInteraction_Mood_SimpEff.2
+
+contrast(TechDirect.SocialInteraction_Mood_SimpEff.2)
+```
+
+```{r}
+pairs(TechDirect.SocialInteraction_Mood_SimpEff.2)
+```
+
+
+```{r}
+
+TechDirect.SocialInteraction_Mood_SimpEff.2.5 <- emmeans(TechDirect.SocialInteraction_Mood.5, 'Social.Interactions_#', by = 'Has_Phone') 
+TechDirect.SocialInteraction_Mood_SimpEff.2.5
+
+contrast(TechDirect.SocialInteraction_Mood_SimpEff.2.5)
+```
+
+```{r}
+pairs(TechDirect.SocialInteraction_Mood_SimpEff.2.5)
+```
+
+## Phone Use Useful     
+### Gender and Condtion predicting Useful
+
+#### Main Effects
+
+
+```{r}
+
+TechDirect.Useful.1 <-
+        lm(Phone.use_1_useful ~ Gender,
+           TechDirections_Tight,
+           subset = Has_Phone == "Phone"
+           )
+
+summary(TechDirect.Useful.1)
+
+```
+
+
+
+### Gender,  and Useful Predicting Mood
+
+
+#### Main Effects 
+
+```{r}
+
+TechDirect.Useful_Mood.1 <-
+        lm(Emotional_Valance_Std ~ Gender + Phone.use_1_useful ,
+           TechDirections_Tight,
+           subset = Has_Phone == "Phone")
+
+summary(TechDirect.Useful_Mood.1)
+
+```
+
+
+
+```{r}
+
+TechDirect.Useful_Mood.1.5 <-
+        lm(Emotional_Valance_Std ~ Gender,
+           TechDirections_Tight,
+           subset = Has_Phone == "Phone")
+
+summary(TechDirect.Useful_Mood.1.5)
+
+```
+
+
+#### Interactions
+```{r}
+
+TechDirect.Useful_Mood.2 <-
+        lm(Emotional_Valance_Std ~ Gender * Phone.use_1_useful ,
+           TechDirections_Tight,
+           subset = Has_Phone == "Phone")
+
+summary(TechDirect.Useful_Mood.2)
+
+```
+
+#### Simple Effects
+
+This is the simple effects of phone when seperating by gender.
+```{r}
+
+TechDirect.Useful_Mood_SimpEff <- emmeans(TechDirect.Useful_Mood.2, 'Gender') 
+TechDirect.Useful_Mood_SimpEff
+
+contrast(TechDirect.Useful_Mood_SimpEff)
+```
+
+```{r}
+pairs(TechDirect.Useful_Mood_SimpEff)
+```
+
+## Phone Use Pleasant
+### Gender and Condtion predicting Pleasant
+
+#### Main Effects
+
+
+```{r}
+
+TechDirect.Pleasant.1 <-
+        lm(Phone.use_2_pleasant ~ Gender,
+           TechDirections_Tight,
+           subset = Has_Phone == "Phone"
+           )
+
+summary(TechDirect.Pleasant.1)
+
+```
+
+
+### Gender,  and Pleasant Predicting Mood
+
+
+#### Main Effects 
+
+```{r}
+
+TechDirect.Pleasant_Mood.1 <-
+        lm(Emotional_Valance_Std ~ Gender + Phone.use_2_pleasant ,
+           TechDirections_Tight,
+           subset = Has_Phone == "Phone")
+
+summary(TechDirect.Pleasant_Mood.1)
+
+```
+
+
+
+```{r}
+
+TechDirect.Pleasant_Mood.1.5 <-
+        lm(Emotional_Valance_Std ~ Gender,
+           TechDirections_Tight,
+           subset = Has_Phone == "Phone")
+
+summary(TechDirect.Pleasant_Mood.1.5)
+
+```
+
+
+#### Interactions
+```{r}
+
+TechDirect.Pleasant_Mood.2 <-
+        lm(Emotional_Valance_Std ~ Gender * Phone.use_2_pleasant ,
+           TechDirections_Tight,
+           subset = Has_Phone == "Phone")
+
+summary(TechDirect.Pleasant_Mood.2)
+
+```
+
+#### Simple Effects
+
+This is the simple effects of phone when seperating by gender.
+```{r}
+
+TechDirect.Pleasant_Mood_SimpEff <- emmeans(TechDirect.Pleasant_Mood.2, 'Gender') 
+TechDirect.Pleasant_Mood_SimpEff
+
+contrast(TechDirect.Pleasant_Mood_SimpEff)
+```
+
+```{r}
+pairs(TechDirect.Pleasant_Mood_SimpEff)
+```
+
+
+# Full Data
+
+## Phone Use
+
+#### Model X - Predicting Phone Use
+```{r}
+PhoneUse_lme <- lme(Phone_Use_Frequency_Std ~ 1 + Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ 1 | ParadigmsCombined, #Random effects portion of model
+                        subset = Has_Phone == "Phone",
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(PhoneUse_lme)
+```
+
+
+#### Model 2 - Phone + Gender + Age + Phone Use
+```{r}
+PhoneUse_lme.2 <- lme(Emotional_Valance_Std ~ 1 + Gender + Phone_Use_Frequency_Std + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  1 | ParadigmsCombined, #Random effects portion of model
+                        subset = Has_Phone == "Phone",
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(PhoneUse_lme.2)
+```
+
+#### Model 3 - Phone + Gender + Age + Phone Use
+```{r}
+PhoneUse_lme.3 <- lme(Emotional_Valance_Std ~ 1 + Has_Phone * Gender + Age + Gender * Phone_Use_Frequency_Std,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        subset = ParadigmsCombined != "Tech Directions",
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(PhoneUse_lme.3)
+```
+
+## Interrupt
+
+#### Model X - Predicting Interuption
+```{r}
+PhoneUse_lme <- lme(Phone_Interruption_Std ~ 1 + Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ 1 | ParadigmsCombined, #Random effects portion of model
+                        subset = Has_Phone == "Phone",
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(PhoneUse_lme)
+```
+
+
+#### Model 2 - Phone + Gender + Age + Interruption
+```{r}
+PhoneUse_lme.2 <- lme(Emotional_Valance_Std ~ 1 + Gender + Age + Phone_Interruption_Std,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  1 | ParadigmsCombined, #Random effects portion of model
+                        subset = Has_Phone == "Phone",
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(PhoneUse_lme.2)
+```
+
+#### Model 3 - Phone + Gender + Age + Interruption
+```{r}
+PhoneUse_lme.3 <- lme(Emotional_Valance_Std ~ 1 + Age + Gender * Phone_Interruption_Std,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  1| ParadigmsCombined, #Random effects portion of model
+                        subset = Has_Phone == "Phone",
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(PhoneUse_lme.3)
+```
+
+## Distraction Study
+
+#### Model X - Predicting Distraction
+```{r}
+EmoVal_wo_TechDirect <- lme(DistractComb_Std ~ 1 + Has_Phone + Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ 1 | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+#### Model X - Predicting Distraction
+```{r}
+EmoVal_wo_TechDirect <- lme(DistractComb_Std ~ 1 + Has_Phone * Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ 1 | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+##### Simple Effects
+```{r}
+
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone | Gender) #, mode = "satterthwaite")
+EmoVal_EMM_Int
+
+contrast(EmoVal_EMM_Int)
+
+```
+
+```{r}
+pairs(EmoVal_EMM_Int)
+```
+```{r}
+anova(EmoVal_EMM_Int)
+```
+
+```{r}
+reghelper::simple_slopes(EmoVal_wo_TechDirect)
+```
+
+
+### Emotional Valance
+
+
+#### Model 2 - Phone + Gender + Age - Only Distract Studies
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone + Gender + Age,   #Fixed effects portion of model
+                        data = filter(MegaAnalysisMaster, !ParadigmsCombined_Factor %in% c("Tech Directions", "Waiting Alone", "Waiting Together")), #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined_Factor, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+
+ #### Model 2 - Phone + Gender + Age + Distraction
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone + Gender +  Age + DistractComb_Std,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+#### Model 3 - Phone + Gender + Age - Distract Studies Only
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone * Gender + Age,   #Fixed effects portion of model
+                        data = filter(MegaAnalysisMaster, !ParadigmsCombined_Factor %in% c("Tech Directions", "Waiting Alone", "Waiting Together")), #Which data to use
+                        random = ~ Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+ #### Model 3 - Phone + Gender + Age + Distraction
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone * Gender + Age + DistractComb_Std,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+
+
+#### Model 4 - Phone * Gender * Distraction + Age
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone * Gender * DistractComb_Std + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+
+```
+
+#### Model 5 - Phone * Gender * Distraction + Social Connection + Age
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone * Gender * DistractComb_Std + SocialConnection_Std + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+#### Model 6 - Phone * Gender * Distraction * Social Connection + Age
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone * Gender * DistractComb_Std * SocialConnection_Std + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+
+```
+
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+
+### Social Connectedness
+
+#### Model 2 - Phone + Gender + Age - Only Distract Studies
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone + Gender + Age, #Fixed effects portion of model
+                        data = filter(MegaAnalysisMaster, !ParadigmsCombined_Factor %in% c("Tech Directions", "Waiting Alone", "Waiting Together")), #Which data to use
+                        random = ~ Has_Phone | ParadigmsCombined_Factor, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+#### Model 2 - Phone + Gender + Age + Distraction
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone + Gender + Age + DistractComb_Std, #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+#### Model 3 - Phone * Gender + Age - Only Distraction Studies
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone * Gender + Age,   #Fixed effects portion of model
+                        data = filter(MegaAnalysisMaster, !ParadigmsCombined_Factor %in% c("Tech Directions", "Waiting Alone", "Waiting Together")), #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined_Factor, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone * Gender + DistractComb_Std + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+#### Model 3 - Phone * Gender + Age + Distraction
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone * Gender + Age + DistractComb_Std,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+```
+
+```{r}
+sigma(EmoVal_wo_TechDirect)
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+```{r}
+ICC2.lme(SocialConnection_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+
+ICC2.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+
+
+###### Simple Effects
+```{r}
+
+EmoVal_EMM_Int <- emmeans(EmoVal_wo_TechDirect, ~ Has_Phone | Gender) #, mode = "satterthwaite")
+EmoVal_EMM_Int
+contrast(EmoVal_EMM_Int)
+
+```
+
+```{r}
+pairs(EmoVal_EMM_Int)
+```
+
+```{r}
+anova(EmoVal_EMM_Int)
+```
+
+```{r}
+reghelper::simple_slopes(EmoVal_wo_TechDirect)
+```
+
+```{r}
+ex5.samp.line <- ggplot(MegaAnalysisMasterGraphs_WithoutTechDirections, aes(x=Has_Phone, y=Emotional_Valance_Std, group=ParadigmsCombined)) + xlab("Condition") + ylab("Emotional Valance (Standarized") + theme_bw() + geom_line(size=1, colour="black") + theme(axis.text=element_text(size=14),axis.title=element_text(size=14,face="bold")) + theme_apa()
+
+
+ex5.samp.line
+```
+
+
+```{r}
+reghelper::simple_slopes(EmoVal_wo_TechDirect)
+```
+
+
+#### Model 4 - Phone * Gender * Distraction + Age
+```{r}
+EmoVal_wo_TechDirect <- lme(SocialConnection_Std ~ 1 + Has_Phone * Gender + Gender * DistractComb_Std + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  Has_Phone | ParadigmsCombined, #Random effects portion of model
+                        method="ML", #Estimation method
+                        na.action="na.omit", #missing data handling
+                        control = lmeControl(opt = 'optim'))
+summary(EmoVal_wo_TechDirect)
+
+```
+
+```{r}
+r.squaredGLMM(EmoVal_wo_TechDirect)
+```
+
+
+
+## 3 Level Models
+
+### Emotional Valance
+#### Model 1 - Phone Only - Won't Converge
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ 1 | Group/ParadigmsCombined, #Random effects portion of model
+                        subset = ParadigmsCombined != "Tech Directions",
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+
+
+#### Model 2 - Phone + Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone + Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~  1 | Group/ParadigmsCombined, #Random effects portion of model
+                        subset = ParadigmsCombined != "Tech Directions",
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+```{r}
+reghelper::ICC(EmoVal_wo_TechDirect)
+
+ICC1.lme(Emotional_Valance_Std, ParadigmsCombined, data = MegaAnalysisMaster)
+
+ICC1.lme(Emotional_Valance_Std, Group, data = MegaAnalysisMaster)
+
+ICC1.lme(SocialConnection_Std, Has_Phone, data = MegaAnalysisMaster)
+```
+
+```{r}
+intervals(EmoVal_wo_TechDirect)
+```
+
+```{r}
+VarCorr(EmoVal_wo_TechDirect)
+```
+
+#### Model 3 - Phone + Gender + Age 
+```{r}
+EmoVal_wo_TechDirect <- lme(Emotional_Valance_Std ~ 1 + Has_Phone * Gender + Age,   #Fixed effects portion of model
+                        data = MegaAnalysisMaster, #Which data to use
+                        random = ~ 1 | Group/ParadigmsCombined, #Random effects portion of model
+                        subset = ParadigmsCombined != "Tech Directions",
+                        method="ML", #Estimation method
+                        na.action="na.omit") #missing data handling
+summary(EmoVal_wo_TechDirect)
+```
+
+# Values for the Forest Plot - Valance Affect
+## Effect sizes for each study
+
+This analysis is running OLS regressions on each of the studies to determine individual study effects. The only variables to include are Social Connectedness, Affect Valance, & Condition
+
+
+#### Getting Directions
+```{r}
+Forest_GetDirect <- lm(Emotional_Valance_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 1 )#& Age != "NA" & Gender != "NA")
+  
+summary(Forest_GetDirect)
+
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 1) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .) 
+```
+
+#### Parents with Children
+```{r}
+Forest_ParChi <- lm(Emotional_Valance_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 5 ) # & Age != "NA" & Gender != "NA")
+  
+summary(Forest_ParChi)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 5) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .)
+```
+
+#### Strong Ties Meal
+```{r}
+Forest_StroMeal <- lm(Emotional_Valance_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 2 )#& Age != "NA" & Gender != "NA")
+  
+summary(Forest_StroMeal)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 2) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .)
+```
+
+#### Weak Ties Meal
+```{r}
+Forest_WeakMeal <- lm(Emotional_Valance_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 6 )#& Age != "NA" & Gender != "NA")
+  
+summary(Forest_WeakMeal)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 6) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .)
+```
+
+#### Waiting Room Alone
+```{r}
+Forest_WaitAlo <- lm(Emotional_Valance_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 3) # & Age != "NA" & Gender != "NA")
+  
+summary(Forest_WaitAlo)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 3) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .)
+```
+
+#### Waiting Room Together
+```{r}
+Forest_WaitTog <- lm(Emotional_Valance_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 4)# & Age != "NA" & Gender != "NA")
+  
+summary(Forest_WaitTog)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 4) %>%
+    cohens_d(Emotional_Valance_Std ~ Has_Phone, data = .)
+```
+
+```{r}
+AffectValanceForest <- data.frame(Paradigm=c('Getting Directions', 'Parents with Children', 'Strong Ties Meal', 'Weak Ties Meal', 'Waiting Room Alone', 'Waiting Room Together'),
+                       index=1:6,
+                       Effect=c(.17898, -.06839, -.14839, -.03218, -.14240, -.18201),
+                       Std_Err=c(.11868, .10083, .11458, .12379, .17800, .10371))
+
+AffectValanceForest <- AffectValanceForest %>%
+  mutate(
+    ConfidenceInt = Std_Err * 1.96,
+    LowerInt = Effect - ConfidenceInt,
+    UpperInt = Effect + ConfidenceInt
+  )
+
+
+```
+
+
+```{r}
+AffectValanceForestD <- data.frame(Paradigm=c('Getting Directions', 'Parents with Children', 'Strong Ties Meal', 'Weak Ties Meal', 'Waiting Room Alone', 'Waiting Room Together'),
+                       index=1:6,
+                       Effect=c(.18, -.07, -.15, -.03, -.14, -.18),
+                       LowerInt=c(-.05, -.27, -.37, -.27, -.49, -.39),
+                       UpperInt=c(.41, .13, .08, .21, .21, .02))
+```
+
+
+## Forest Plot - Affect Valance
+
+```{r}
+AffectForectPlot <- ggplot(data=AffectValanceForest, aes(y=index, x=Effect, xmin=LowerInt, xmax=UpperInt, label = Effect)) +
+  geom_point() + geom_text (hjust = .5, vjust = -1) +
+  geom_errorbarh(height=.1) +
+  scale_y_continuous(breaks=1:nrow(AffectValanceForest), labels=AffectValanceForest$Paradigm) +
+  labs(title='Beta by Study for Affect Valance', x='Beta from Phone Condition', y = 'Study') +
+  geom_vline(xintercept=0, color='black', linetype='dashed', alpha=.5) +
+  theme_apa()
+
+AffectForectPlot
+```
+
+
+```{r}
+AffectForectPlot <- ggplot(data=AffectValanceForestD, aes(y=index, x=Effect, xmin=LowerInt, xmax=UpperInt, label = Effect)) +
+  geom_point() + geom_text (hjust = .5, vjust = -.5) +
+  geom_errorbarh(height=.1) +
+  scale_y_continuous(breaks=1:nrow(AffectValanceForest), labels=AffectValanceForest$Paradigm) +
+  labs(x="Cohens D for Phone Condition on Affect Valence", y = 'Paradigm') +
+  geom_vline(xintercept=0, color='black', linetype='dashed', alpha=.5) +
+  theme_apa()
+
+AffectForectPlot
+```
+
+
+# Values for the Forest Plot - Social Connectedness
+## Effect sizes for each study
+
+This analysis is running OLS regressions on each of the studies to determine individual study effects. The only variables to include are Social Connectedness, Affect Valance, & Condition
+
+
+
+#### Getting Directions
+```{r}
+Forest_GetDirectS <- lm(SocialConnection_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 1 )#& Age != "NA" & Gender != "NA")
+  
+summary(Forest_GetDirectS)
+
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 1) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .)
+```
+
+#### Parents with Children
+```{r}
+Forest_ParChiS <- lm(SocialConnection_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 5 ) # & Age != "NA" & Gender != "NA")
+  
+summary(Forest_ParChiS)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 5) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .)
+```
+
+#### Strong Ties Meal
+```{r}
+Forest_StroMealS <- lm(SocialConnection_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 2 )#& Age != "NA" & Gender != "NA")
+  
+summary(Forest_StroMealS)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 2) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .)
+```
+
+#### Weak Ties Meal
+```{r}
+Forest_WeakMealS <- lm(SocialConnection_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 6 )#& Age != "NA" & Gender != "NA")
+  
+summary(Forest_WeakMealS)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 6) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .)
+```
+
+#### Waiting Room Alone
+```{r}
+Forest_WaitAloS <- lm(SocialConnection_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 3) # & Age != "NA" & Gender != "NA")
+  
+summary(Forest_WaitAloS)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 3) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .)
+```
+
+#### Waiting Room Together
+```{r}
+Forest_WaitTogS <- lm(SocialConnection_Std ~ Has_Phone, data = MegaAnalysisMaster, subset = ParadigmsCombined == 4)# & Age != "NA" & Gender != "NA")
+  
+summary(Forest_WaitTogS)
+
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(ParadigmsCombined == 4) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .)
+```
+
+```{r}
+SocialConnectedForest <- data.frame(Paradigm=c('Getting Directions', 'Parents with Children', 'Strong Ties Meal', 'Weak Ties Meal', 'Waiting Room Alone', 'Waiting Room Together'),
+                       index=1:6,
+                       Effect=c(-.42320, -.42360, -.17791, -.20339, -.13101, -.12750),
+                       Std_Err=c(.11623, .09799, .11444, .12131, .17887, .10368))
+
+SocialConnectedForest <- SocialConnectedForest %>%
+  mutate(
+    ConfidenceInt = Std_Err * 1.96,
+    LowerInt = Effect - ConfidenceInt,
+    UpperInt = Effect + ConfidenceInt
+  )
+
+
+```
+
+
+```{r}
+SocialConnectedForestD <- data.frame(Paradigm=c('Getting Directions', 'Parents with Children', 'Strong Ties Meal', 'Weak Ties Meal', 'Waiting Room Alone', 'Waiting Room Together'),
+                       index=1:6,
+                       Effect=c(-.43,-.43, -.18, -.20, -.13, -.13),
+                       LowerInt=c(-.67, -.63, -.40, -.44, -.48, -.53),
+                       UpperInt=c(-.20, -.23, .05, .04, .22, .08))
+```
+
+
+## Forest Plot - Social Connectedness
+
+```{r}
+SocialConnectedForestPlot <- ggplot(data=SocialConnectedForest, aes(y=index, x=Effect, xmin=LowerInt, xmax=UpperInt, label = Effect)) +
+  geom_point() + geom_text (hjust = .5, vjust = -1) +
+  geom_errorbarh(height=.1) +
+  scale_y_continuous(breaks=1:nrow(SocialConnectedForest), labels=SocialConnectedForest$Paradigm) +
+  labs(x='Beta from Phone Condition', y = 'Study') +
+  geom_vline(xintercept=0, color='black', linetype='dashed', alpha=.5) +
+  theme_apa()
+
+SocialConnectedForestPlot
+```
+
+```{r}
+SocialConnectedForestPlot <- ggplot(data=SocialConnectedForestD, aes(y=index, x=Effect, xmin=LowerInt, xmax=UpperInt, label = Effect)) +
+  geom_point() + geom_text (hjust = .5, vjust = -.5) +
+  geom_errorbarh(height=.1) +
+  scale_y_continuous(breaks=1:nrow(AffectValanceForest), labels=AffectValanceForest$Paradigm) +
+  labs(x="Cohens D for Phone Condition on Social Connectedness", y = 'Paradigm') +
+  geom_vline(xintercept=0, color='black', linetype='dashed', alpha=.5) +
+  theme_apa()
+
+SocialConnectedForestPlot
+```
+
+
+## Getting Numbers for Power Analysis between groups
+```{r}
+MegaAnalysisMaster %>%
+  filter(!is.na(Age) & !is.na(Gender) & !is.na(Has_Phone) & !is.na(ParadigmsCombined) & !is.na(Emotional_Valance_Std)) %>% group_by(ParadigmsCombined) %>% tally()
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(!is.na(Age) & !is.na(Gender) & !is.na(Has_Phone) & !is.na(ParadigmsCombined) & !is.na(Emotional_Valance_Std)) %>%  tally()
+```
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(!is.na(Age) & !is.na(Gender) & !is.na(Has_Phone) & !is.na(ParadigmsCombined) & !is.na(Emotional_Valance_Std) & ParadigmsCombined != 5) %>% summarise(mean(as.numeric(Has_Phone)), sd(as.numeric(Has_Phone)))
+```
+```{r}
+MegaAnalysisMaster %>%
+  filter(!is.na(Age) & !is.na(Gender) & !is.na(Has_Phone) & !is.na(ParadigmsCombined) & !is.na(Emotional_Valance_Std) & ParadigmsCombined == 5) %>% summarise(mean(as.numeric(Has_Phone)), sd(as.numeric(Has_Phone)))
+```
+
+
+
+```{r}
+MegaAnalysisMaster %>%
+  filter(!is.na(Age) & !is.na(Gender) & !is.na(Has_Phone) & !is.na(ParadigmsCombined) & !is.na(SocialConnection_Std) & ParadigmsCombined == 1 & Has_Phone == "Phone") %>%
+        #   group_by(as.numeric(Has_Phone)) %>% 
+           summarise(mean(SocialConnection_Std), sd(SocialConnection_Std))
+
+
+MegaAnalysisMaster %>%
+  filter(!is.na(Age) & !is.na(Gender) & !is.na(Has_Phone) & !is.na(ParadigmsCombined) & !is.na(SocialConnection_Std) & ParadigmsCombined == 1 & Has_Phone == "Phone") %>%
+        #   group_by(as.numeric(Has_Phone)) %>% 
+           tally()
+```
+```{r}
+MegaAnalysisMaster %>%
+  filter(!is.na(Age) & !is.na(Gender) & !is.na(Has_Phone) & !is.na(ParadigmsCombined) & !is.na(SocialConnection_Std) & ParadigmsCombined == 1 & Has_Phone == "No Phone") %>%
+        #   group_by(as.numeric(Has_Phone)) %>% 
+           summarise(mean(SocialConnection_Std), sd(SocialConnection_Std))
+
+
+MegaAnalysisMaster %>%
+  filter(!is.na(Age) & !is.na(Gender) & !is.na(Has_Phone) & !is.na(ParadigmsCombined) & ParadigmsCombined == 1 & !is.na(SocialConnection_Std) & Has_Phone == "No Phone") %>%
+        #   group_by(as.numeric(Has_Phone)) %>% 
+           tally()
+```

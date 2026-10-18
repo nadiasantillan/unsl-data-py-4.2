@@ -1,0 +1,107 @@
+---
+title: "Teléfonos Inteligentes e Impacto en la Vinculación Social"
+author: "Centurion Wagner, A., Ferragutti, S., Santillan, N."
+format: html
+editor: visual
+---
+
+## Repetición de Resultados
+
+Este análisis intenta reproducir los resultados del artículo [*Smartphones Undermine Social Connectedness More in Men Than Women: A Mini Mega-Analysis*](https://psycnet.apa.org/fulltext/2024-48810-001.pdf) mediante los script de análisis y los datos publicados en [osf.io/x73m9](https://osf.io/x73m9/files/osfstorage) y también verificar el cumplimiento del pre-registro realizado en [osf.io/je4sm](https://osf.io/je4sm/overview)
+
+### Bibliotecas necesarias
+
+Este script usa la biblioteca *haven* para la importación de archivos de datos .sav.
+
+```{r}
+#| echo: false
+if(!require(haven))  {install.packages("haven")}
+if(!require(tidyverse))  {install.packages("tidyverse")}
+if(!require(lm.beta))  {install.packages("lm.beta")}
+#if(!require(psych))  {install.packages("psych")}
+#if(!require(nlme))  {install.packages("nlme")}
+#if(!require(psychometric))  {install.packages("psychometric")}
+#if(!require(readr)) {install.packages("readr")}
+#if(!require(reghelper)) {install.packages("reghelper")}
+#if(!require(plyr))  {install.packages("plyr")}
+#if(!require(sjPlot))  {install.packages("sjPlot")}
+#if(!require(emmeans))  {install.packages("emmeans")}
+#if(!require(MuMIn))  {install.packages("MuMIn")}
+#if(!require(EMAtools))  {install.packages("EMAtools")}
+#if(!require(effectsize))  {install.packages("effectsize")}
+
+```
+
+### Importación de Datos
+
+```{r}
+mega_analysis <- read_sav("articles/x73m9-osfstorage-archive-mega/MegaAnalysisMaster.sav")
+tech_directions <- read_sav("articles/x73m9-osfstorage-archive-mega/Tech_Directions_Tight.sav")
+
+head(mega_analysis)
+```
+
+```{r}
+head(tech_directions)
+```
+
+```{r}
+### Conversión de variables cualitativas a factores
+mega_analysis$Gender <- as.factor(mega_analysis$Gender)
+mega_analysis$Has_Phone <- as.factor(mega_analysis$Has_Phone)
+
+mega_analysis$Gender <- recode_factor(mega_analysis$Gender, `0` = "Female", `1` = "Male")
+mega_analysis$Has_Phone<- recode_factor(mega_analysis$Has_Phone, `0` = "No Phone", `1` = "Phone")
+
+mega_analysis$ParadigmsCombined_Factor <- recode_factor(mega_analysis$ParadigmsCombined, `1` = "Tech Directions", `2` = "Tech Restraunt", `3` = "Waiting Alone", `4` = "Waiting Together", `5` = "Parent Study", `6` = "Lunch Study")
+
+mega_analysis_graphs <- subset(mega_analysis, Gender == "Female" | Gender == "Male")
+mega_analysis_graphs <- subset(mega_analysis_graphs, Has_Phone == "No Phone"|  Has_Phone == "Phone")
+
+
+tech_directions$Gender <- as.factor(tech_directions$Gender)
+tech_directions$Has_Phone <- as.factor(tech_directions$Has_Phone)
+tech_directions$Gender <- recode_factor(tech_directions$Gender, `0` = "Female", `1` = "Male")
+tech_directions$Has_Phone<- recode_factor(tech_directions$Has_Phone, `0` = "No Phone", `1` = "Phone")
+```
+
+## Replicación de Resultados del Informe
+
+### Tabla 2
+
+```{r}
+contrasts(mega_analysis$ParadigmsCombined_Factor) = contr.sum(6)
+
+SocInitial <- lm(SocialConnection_Std ~Age + Has_Phone*Gender +Has_Phone*ParadigmsCombined_Factor, mega_analysis)
+modelo_ini_resumen <- summary(SocInitial)
+modelo_ini_betas <- lm.beta::lm.beta(SocInitial)
+modelo_ini_ci <- confint(SocInitial)
+
+tabla2 <- data.frame(
+                     beta=round(modelo_ini_betas$standardized.coefficients,2),
+                     b=round(modelo_ini_resumen$coefficients[,"Estimate"],2),
+                     b_ic_low=round(modelo_ini_ci[,1],2), 
+                     b_ic_high=round(modelo_ini_ci[,2],2), 
+                     t=round(modelo_ini_resumen$coefficients[,"t value"],2))
+
+rownames(tabla2) <- c(
+  "(Intercept)", 
+  "Age", 
+  "Condition (phone=1, no-phone=0)", 
+  "Gender (man=1, woman=0)",
+  "Getting directions",
+  "Strong ties meal",
+  "Waiting alone",
+  "Waiting together",
+  "Parents with children",
+  "Condition x Gender",
+  "Condition x Getting directions",
+  "Condition x Strong ties meal",
+  "Condition x Waiting alone",
+  "Condition x Waiting together",
+  "Condition x Parents with children")
+print(tabla2)
+```
+```{r}
+colnames(mega_analysis)
+```
