@@ -112,46 +112,23 @@ rownames(tabla2) <- c(
 print(tabla2)
 ```
 
-```{r}
-nrow(mega_analysis)
-colnames(mega_analysis)
-nrow(mega_analysis[, c("SocialConnection_Std", "Age", "Has_Phone", "Gender", "ParadigmsCombined_Factor")])
-
-```
 ### Forest Plot
-#### Getting Directions
 ```{r}
-mega_analysis %>%
-  filter(ParadigmsCombined == 1) %>%
-    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
-```
-#### Parents with Children
-```{r}
-mega_analysis %>%
-  filter(ParadigmsCombined == 5) %>%
-    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
-```
-#### Strong Ties Meal
-```{r}
-mega_analysis %>%
-  filter(ParadigmsCombined == 2) %>%
-    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
-```
-#### Weak Ties Meal
-```{r}
-mega_analysis %>%
-  filter(ParadigmsCombined == 6) %>%
-    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
-```
-#### Waiting Room Alone
-```{r}
-mega_analysis %>%
-  filter(ParadigmsCombined == 3) %>%
-    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
-```
-#### Waiting Room Together
-```{r}
-mega_analysis %>%
-  filter(ParadigmsCombined == 4) %>%
-    cohens_d(SocialConnection_Std ~ Has_Phone, data = .) 
+
+ds <- sapply(levels(mega_analysis$ParadigmsCombined_Factor), function(paradigm) {
+  d <- mega_analysis %>%
+    filter(ParadigmsCombined_Factor == paradigm) %>%
+    cohens_d(SocialConnection_Std ~ Has_Phone, data = .)   
+  c(round(d$Cohens_d,2), round(d$CI,2), round(d$CI_low,2), round(d$CI_high,2) )
+})
+rownames(ds) <- c("d", "CI", "CIl", "CIh")
+ds <- as.data.frame(t(ds))
+ds$Paradigma <- levels(mega_analysis$ParadigmsCombined_Factor)
+
+ggplot(data=ds, aes(xmin=CIl, xmax=CIh, x=d, y=Paradigma)) +
+  geom_errorbar(aes(xmin=CIl, xmax=CIh), width=0.1 )+
+  geom_point()+
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red", linewidth = 0.5)+
+  labs(title="d de Cohen por Paradigma", subtitle = "Sin teléfono vs Con teléfono")+
+  theme_classic()
 ```
