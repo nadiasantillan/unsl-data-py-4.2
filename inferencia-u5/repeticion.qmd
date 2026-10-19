@@ -128,6 +128,7 @@ ds$Paradigma <- levels(mega_analysis$ParadigmsCombined_Factor)
 ggplot(data=ds, aes(xmin=CIl, xmax=CIh, x=d, y=Paradigma)) +
   geom_errorbar(aes(xmin=CIl, xmax=CIh), width=0.1 )+
   geom_point()+
+  geom_text(aes(label = d), nudge_y = 0.2, check_overlap = TRUE)+
   geom_vline(xintercept = 0, linetype = "dashed", color = "red", linewidth = 0.5)+
   labs(title="d de Cohen por Paradigma", subtitle = "Sin teléfono vs Con teléfono")+
   theme_classic()
