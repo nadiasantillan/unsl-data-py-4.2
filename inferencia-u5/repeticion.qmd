@@ -38,12 +38,8 @@ if(!require(effectsize))  {install.packages("effectsize")}
 mega_analysis <- read_sav("articles/x73m9-osfstorage-archive-mega/MegaAnalysisMaster.sav")
 tech_directions <- read_sav("articles/x73m9-osfstorage-archive-mega/Tech_Directions_Tight.sav")
 
-head(mega_analysis)
 ```
 
-```{r}
-head(tech_directions)
-```
 
 ```{r}
 ### Conversión de variables cualitativas a factores
@@ -53,7 +49,7 @@ mega_analysis$Has_Phone <- as.factor(mega_analysis$Has_Phone)
 mega_analysis$Gender <- recode_factor(mega_analysis$Gender, `0` = "Female", `1` = "Male")
 mega_analysis$Has_Phone<- recode_factor(mega_analysis$Has_Phone, `0` = "No Phone", `1` = "Phone")
 
-mega_analysis$ParadigmsCombined_Factor <- recode_factor(mega_analysis$ParadigmsCombined, `1` = "Tech Directions", `2` = "Tech Restraunt", `3` = "Waiting Alone", `4` = "Waiting Together", `5` = "Parent Study", `6` = "Lunch Study")
+mega_analysis$ParadigmsCombined_Factor <- recode_factor(mega_analysis$ParadigmsCombined, `1` = "Tech Directions", `2` = "Strong Ties Meal", `3` = "Waiting Room Alone", `4` = "Waiting Room Together", `5` = "Parents with Childen", `6` = "Weak Ties Meal")
 
 mega_analysis_graphs <- subset(mega_analysis, Gender == "Female" | Gender == "Male")
 mega_analysis_graphs <- subset(mega_analysis_graphs, Has_Phone == "No Phone"|  Has_Phone == "Phone")
@@ -85,13 +81,17 @@ SocInitial <- lm(SocialConnection_Std ~Age + Has_Phone*Gender +Has_Phone*Paradig
 modelo_ini_resumen <- summary(SocInitial)
 modelo_ini_betas <- lm.beta::lm.beta(SocInitial)
 modelo_ini_ci <- confint(SocInitial)
+modelo_ini_resumen
+```
 
+```{r}
 tabla2 <- data.frame(
                      beta=round(modelo_ini_betas$standardized.coefficients,2),
                      b=round(modelo_ini_resumen$coefficients[,"Estimate"],2),
                      b_ic_low=round(modelo_ini_ci[,1],2), 
                      b_ic_high=round(modelo_ini_ci[,2],2), 
-                     t=round(modelo_ini_resumen$coefficients[,"t value"],2))
+                     t=round(modelo_ini_resumen$coefficients[,"t value"],2),
+                     stars=ifelse(modelo_ini_resumen$coefficients[,"Pr(>|t|)"]<0.01, "**", ifelse(modelo_ini_resumen$coefficients[,"Pr(>|t|)"]<0.05, "*", "")))
 
 rownames(tabla2) <- c(
   "(Intercept)", 
@@ -111,10 +111,8 @@ rownames(tabla2) <- c(
   "Condition x Parents with children")
 print(tabla2)
 ```
-
 ### Forest Plot
 ```{r}
-
 ds <- sapply(levels(mega_analysis$ParadigmsCombined_Factor), function(paradigm) {
   d <- mega_analysis %>%
     filter(ParadigmsCombined_Factor == paradigm) %>%
@@ -123,8 +121,8 @@ ds <- sapply(levels(mega_analysis$ParadigmsCombined_Factor), function(paradigm) 
 })
 rownames(ds) <- c("d", "CI", "CIl", "CIh")
 ds <- as.data.frame(t(ds))
-ds$Paradigma <- levels(mega_analysis$ParadigmsCombined_Factor)
 
+ds$Paradigma <- factor(rownames(ds), levels=c("Tech Directions", "Parents with Childen","Strong Ties Meal","Weak Ties Meal", "Waiting Room Alone", "Waiting Room Together"), ordered = T)
 ggplot(data=ds, aes(xmin=CIl, xmax=CIh, x=d, y=Paradigma)) +
   geom_errorbar(aes(xmin=CIl, xmax=CIh), width=0.1 )+
   geom_point()+
