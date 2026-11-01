@@ -1,0 +1,22 @@
+---
+title: "Pasturas"
+format: html
+editor: source
+---
+
+## Pasturas
+
+```{r}
+library(dplyr)
+source("../common/anova.R")
+```
+
+```{r}
+materia_seca <- read.csv("materiaseca_1.csv")
+```
+```{r}
+levels_plot(materia_seca, "Materia.Seca", "Pastura", "m", "s", "Manejo", "Ablocado por Manejo", "Pastura", "Materia Seca (ton/ha)")
+```
+```{r}
+levels_plot(materia_seca, "Materia.Seca", "Manejo", "m", "s", "Pastura", "Ablocado por Pastura", "Manejo", "Materia Seca (ton/ha)")
+```

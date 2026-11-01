@@ -1,0 +1,25 @@
+Pastura,Manejo,Repeticion,Materia Seca
+Monocultivo,Cultural,1,12.50
+Monocultivo,Cultural,2,14.00
+Monocultivo,Cultural,3,11.50
+Monocultivo,Cultural,4,10.30
+Monocultivo,Mecánico,1,14.00,
+Monocultivo,Mecánico,2,15.30,
+Monocultivo,Mecánico,3,11.30,
+Monocultivo,Mecánico,4,10.50,
+Monocultivo,Químico,1,16.00
+Monocultivo,Químico,2,16.80
+Monocultivo,Químico,3,12.90
+Monocultivo,Químico,4,11.00
+Policultivo,Cultural,1,10.50
+Policultivo,Cultural,2,11.00
+Policultivo,Cultural,3,9.20
+Policultivo,Cultural,4,8.10
+Policultivo,Mecánico,1,13.00
+Policultivo,Mecánico,2,13.50
+Policultivo,Mecánico,3,11.70
+Policultivo,Mecánico,4,13.60
+Policultivo,Químico,1,8.80
+Policultivo,Químico,2,12.30
+Policultivo,Químico,3,10.10
+Policultivo,Químico,4,8.80
