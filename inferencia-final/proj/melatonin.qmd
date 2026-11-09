@@ -1,0 +1,69 @@
+---
+title: "Melatonina y Sueño"
+author: "Centurion Wagner, A., Ferraguti, S., Santillán, N."
+format: html
+editor: visual
+---
+```{r}
+#| echo: false
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  install.packages("remotes")
+}
+
+if(!require(dplyr)) install.packages("dplyr")
+if(!require(glmmTMB)) install.packages("glmmTMB")
+if(!require(MuMIn)) install.packages("MuMIn")
+if(!require(emmeans)) install.packages("emmeans")
+if(!require(ggplot2)) install.packages("ggplot2")
+if(!require(DHARMa)) install.packages("DHARMa")
+if(!require(effectsize)) install.packages("effectsize")
+if(!require(gghalves)) remotes::install_github("erocoar/gghalves")
+if(!require(survival)) install.packages("survival")
+if(!require(survminer)) install.packages("survminer")
+if(!require(ggeffects)) install.packages("ggeffects")
+```
+
+## Melatonina y Sueño
+
+### Introducción
+
+Articulo blah blah
+
+### Descripción de la Base de Datos
+#### Importación de datos
+```{r}
+dat <- read.csv("melatonin.csv") 
+```
+Columnas a usar de las filas con valor en la variable respuesta
+```{r}
+dat <- dat[!is.na(dat$SOL_ACT), c("ParticipantID", 
+                                               "Treatment", 
+                                               "StudyPeriod",
+                                               "StudyPeriodWeek",
+                                               "SleepEpisodeNo",
+                                               "SOL_ACT")] 
+```
+
+Conversión de factores
+```{r}
+dat$Treatment <- factor(dat$Treatment)
+dat$Treatment <- recode_factor(dat$Treatment, '1' = 'Placebo', '2' = 'Melatonina')
+dat$StudyPeriodWeek <- factor(dat$StudyPeriodWeek)
+dat$StudyPeriod <- factor(dat$StudyPeriod)
+dat$StudyPeriod <- recode_factor(dat$StudyPeriod, 'Baseline' = 'Base', 'Treatment' = 'Tratamiento')
+```
+#### Variable de respues
+```{r}
+ggplot(data=dat, aes(x=SOL_ACT, fill=Treatment))+
+  geom_histogram(color="white", bins=50)+
+  labs(title="Distribución de la respuesta - Latencia de sueño", 
+       x = "Latencia de sueño (minutos)",
+       y = "Cantidad",
+       fill = "Tratamiento")
+  theme_classic()
+```
+### Modelos
+
+
+
+### Inferencia sobre el modelo elegido
