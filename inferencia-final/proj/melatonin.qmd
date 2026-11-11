@@ -252,18 +252,12 @@ data.frame(estimado=round(fixef(m2)$cond,2),
 #### Cohen's d
 
 ```{r}
-# El metodo pairwise y revpairwise acomodan los signos en la salida, cambian las columnas a restar
-
 em <- emmeans::emmeans(m2, ~ Treatment, regrid = "response")
 contrast(em, "revpairwise", adjust = "none")
-```
-```{r}
 em1 <- emmeans::emmeans(m2, ~ StudyPeriodWeek, regrid = "response")
 contrast(em1, "revpairwise", adjust = "none")
-```
-```{r}
-sd_y <- sd(dat$SOL_ACT, na.rm = TRUE)
 
+sd_y <- sd(dat$SOL_ACT, na.rm = TRUE)
 cs <- as.data.frame(confint(contrast(em, "pairwise", adjust = "none")))
 
 cs$d     <- cs$estimate        / sd_y
@@ -273,11 +267,11 @@ cs$d_sup <- cs$asymp.UCL  / sd_y
 cs[, c("contrast", "estimate", "d", "d_inf", "d_sup")]
 ```
 ```{r}
-cs1 <- as.data.frame(confint(contrast(em1, "pairwise", adjust = "none")))
+cs1 <- as.data.frame(confint(contrast(em1, "revpairwise", adjust = "none")))
 
-cs1$d     <- cs$estimate        / sd_y
-cs1$d_inf <- cs$asymp.LCL  / sd_y
-cs1$d_sup <- cs$asymp.UCL  / sd_y
+cs1$d     <- cs1 $estimate        / sd_y
+cs1$d_inf <- cs1 $asymp.LCL  / sd_y
+cs1$d_sup <- cs1 $asymp.UCL  / sd_y
 #StudyPeriodWeek
 cs1[, c("contrast", "estimate", "d", "d_inf", "d_sup")]
 ```
