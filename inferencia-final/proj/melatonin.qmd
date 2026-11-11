@@ -90,11 +90,11 @@ m1 <- glmmTMB(SOL_ACT ~ Treatment * StudyPeriod + (1 | ParticipantID/StudyPeriod
 
 # Con interacción Treatment x StudyPeriodWeek  y anidamiento por participante
 m2 <- glmmTMB(SOL_ACT ~ Treatment * StudyPeriodWeek + (1 | ParticipantID/StudyPeriodWeek),
-              family = tweedie(link = "log"), data = dat)
+              family = tweedie(link = "log"), data = dat[dat$StudyPeriod=="Tratamiento",])
 
 # Con interacción Treatment x SleepEpisodeNo  y anidamiento por participante
 m3 <- glmmTMB(SOL_ACT ~ Treatment * SleepEpisodeNo + (1 | ParticipantID/SleepEpisodeNo),
-              family = tweedie(link = "log"), data = dat)
+              family = tweedie(link = "log"), data = dat[dat$StudyPeriod=="Tratamiento",])
 
 ```
 
@@ -232,8 +232,8 @@ print(boot_results)
 
 ```{r}
 data.frame(estimado=round(fixef(m2)$cond,2),
-           ci_l=round(confint(m2)[1:10, 1],2),
-           ci_h=round(confint(m2)[1:10, 2],2),
+           ci_l=round(confint(m2)[1:8, 1],2),
+           ci_h=round(confint(m2)[1:8, 2],2),
           bootstrap_ci_l=sapply(seq(1,length(fixef(m2)$cond)), function(i) {
             round(boot.ci(boot_results, index = i, type = "perc")$percent[4], 2)
           }),
@@ -279,6 +279,10 @@ cs1[, c("contrast", "estimate", "d", "d_inf", "d_sup")]
 ```{r}
 standardize_parameters(m2, method = "pseudo", ci_method = "satterthwaite")
 ```
+```{r}
+standardize_parameters(m2, method = "refit", two_sd = T)
+```
+
 ### Pseudo R²
 ```{r}
 PseudoR2(m2, which="all")
