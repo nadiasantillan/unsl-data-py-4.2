@@ -64,7 +64,6 @@ dat$StudyPeriodWeek <- factor(dat$StudyPeriodWeek)
 dat$StudyPeriod <- factor(dat$StudyPeriod)
 dat$StudyPeriod <- recode_factor(dat$StudyPeriod, 'Baseline' = 'Base', 'Treatment' = 'Tratamiento')
 ```
-
 #### Variable de respuesta
 
 ```{r}
@@ -142,7 +141,15 @@ testOutliers(res1)
 res2 <- simulateResiduals(m2)
 plot(res2)                       # QQ de residuos y residuos vs. predichos
 ```
+```{r}
+data_residuals <- dat[dat$StudyPeriod=="Tratamiento",]
+data_residuals$StudyPeriodWeek <- droplevels(data_residuals$StudyPeriodWeek)
+plotResiduals(res2, data_residuals$Treatment)
+```
+```{r}
 
+plotResiduals(res2, data_residuals$StudyPeriodWeek)
+```
 ```{r}
 testDispersion(res2)             # chequeos del modelo, no resultados del estudio
 ```
@@ -174,8 +181,8 @@ ggplot(data = em_df, aes(y=response, x=interaction(Treatment, StudyPeriod), colo
   geom_text(aes(label = response), nudge_x = 0.2, check_overlap = TRUE, size=10/.pt)+
   labs(title="Medias por Tratamiento y Período", 
        subtitle = "Placebo vs Melatonina", 
-       x = "Latencia Actígrafo (minutos)",
-       y = "Tratamiento + Período",
+       y = "Latencia Actígrafo (minutos)",
+       x = "Tratamiento + Período",
        fill="Tratamiento",
        color="Tratamiento")+
   theme_classic()
@@ -201,14 +208,14 @@ ggplot(data = em_df, aes(y=response, x=interaction(Treatment, StudyPeriodWeek), 
   geom_text(aes(label = response), nudge_x = 0.5, check_overlap = TRUE, size=10/.pt)+
   labs(title="Medias por Tratamiento y Semana", 
        subtitle = "Placebo vs Melatonina", 
-       x = "Latencia Actígrafo (minutos)",
-       y = "Tratamiento + Semana",
+       y = "Latencia Actígrafo (minutos)",
+       x = "Tratamiento + Semana",
        fill="Tratamiento",
        color="Tratamiento")+
   theme_classic()
 ```
 
-### Coeficientes e IC - SOL_ACT \~ Treatment \* StudyPeriodWeek + (1 \| ParticipantID/StudyPeriodWeek)
+### Bootstrap - Coeficientes e IC - SOL_ACT \~ Treatment \* StudyPeriodWeek + (1 \| ParticipantID/StudyPeriodWeek)
 
 ```{r}
 
@@ -218,7 +225,7 @@ extract_fixef <- function(fitted_model) {
 }
 
 # Bootstrap paramétrico usando bootMer
-set.seed(123) # For reproducibility
+set.seed(123) 
 boot_results <- lme4::bootMer(m2, 
                               FUN = extract_fixef, 
                               nsim = 100,            
@@ -226,7 +233,6 @@ boot_results <- lme4::bootMer(m2,
                               parallel = "multicore",
                               ncpus = 8)
 
-# 4. View results and calculate bootstrap confidence intervals
 print(boot_results)
 ```
 
