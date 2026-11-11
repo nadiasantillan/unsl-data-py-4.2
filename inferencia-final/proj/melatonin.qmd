@@ -1,9 +1,13 @@
 ---
 title: "Melatonina y Sueño"
 author: "Centurion Wagner, A., Ferraguti, S., Santillán, N."
-format: html
+format:
+  html:
+    toc: true
+    toc-depth: 4
 editor: visual
 ---
+
 ```{r}
 #| echo: false
 if (!requireNamespace("remotes", quietly = TRUE)) {
@@ -21,6 +25,8 @@ if(!require(survival)) install.packages("survival")
 if(!require(survminer)) install.packages("survminer")
 if(!require(ggeffects)) install.packages("ggeffects")
 if(!require(boot)) install.packages("boot")
+if(!require(effectsize)) install.packeges("effectsize")
+if(!require(DescTools)) install.packeges("DescTools")
 ```
 
 ## Melatonina y Sueño
@@ -30,11 +36,15 @@ if(!require(boot)) install.packages("boot")
 Articulo blah blah
 
 ### Descripción de la Base de Datos
+
 #### Importación de datos
+
 ```{r}
 dat <- read.csv("melatonin.csv") 
 ```
+
 Columnas a usar de las filas con valor en la variable respuesta
+
 ```{r}
 dat <- dat[!is.na(dat$SOL_ACT), c("ParticipantID", 
                                                "Treatment", 
@@ -45,6 +55,7 @@ dat <- dat[!is.na(dat$SOL_ACT), c("ParticipantID",
 ```
 
 Conversión de factores
+
 ```{r}
 dat$Treatment <- factor(dat$Treatment)
 dat$ParticipantID <- factor(dat$ParticipantID)
@@ -53,7 +64,9 @@ dat$StudyPeriodWeek <- factor(dat$StudyPeriodWeek)
 dat$StudyPeriod <- factor(dat$StudyPeriod)
 dat$StudyPeriod <- recode_factor(dat$StudyPeriod, 'Baseline' = 'Base', 'Treatment' = 'Tratamiento')
 ```
+
 #### Variable de respuesta
+
 ```{r}
 ggplot(data=dat, aes(x=SOL_ACT, fill=Treatment))+
   geom_histogram(color="white", fill = "darkorange", bins=20)+
@@ -63,6 +76,7 @@ ggplot(data=dat, aes(x=SOL_ACT, fill=Treatment))+
        y = "Cantidad")+
   theme_classic()
 ```
+
 ### Modelos
 
 ```{r}
@@ -83,7 +97,9 @@ m3 <- glmmTMB(SOL_ACT ~ Treatment * SleepEpisodeNo + (1 | ParticipantID/SleepEpi
               family = tweedie(link = "log"), data = dat)
 
 ```
+
 Comparación de los modelos
+
 ```{r}
 r20 <- r.squaredGLMM(m0)
 r21 <- r.squaredGLMM(m1)
@@ -98,46 +114,55 @@ data.frame(formula=c(format(formula(m0)), format(formula(m1)), format(formula(m2
            R2_condicional=c(r20[2], r21[2], r22[2], r23[2]))
 
 ```
-### Diagnóstico: SOL_ACT ~ Treatment * StudyPeriod + (1 | ParticipantID)
+
+### Diagnóstico: SOL_ACT \~ Treatment \* StudyPeriod + (1 \| ParticipantID)
+
 ```{r}
 # ---- Diagnóstico del modelo m0 -------------------------
 res1 <- simulateResiduals(m0)
 plot(res1)                       # QQ de residuos y residuos vs. predichos
 ```
+
 ```{r}
 testDispersion(res1)
 ```
+
 ```{r}
 testZeroInflation(res1)          # si da exceso de ceros: ziformula = ~1```
 ```
+
 ```{r}
 testOutliers(res1)
 ```
-### Diagnóstico: SOL_ACT ~ Treatment * StudyPeriodWeek + (1 | ParticipantID/StudyPeriodWeek)
+
+### Diagnóstico: SOL_ACT \~ Treatment \* StudyPeriodWeek + (1 \| ParticipantID/StudyPeriodWeek)
+
 ```{r}
 # ---- Diagnóstico del modelo m2 -------------------------
 res2 <- simulateResiduals(m2)
 plot(res2)                       # QQ de residuos y residuos vs. predichos
 ```
+
 ```{r}
 testDispersion(res2)             # chequeos del modelo, no resultados del estudio
 ```
+
 ```{r}
 testZeroInflation(res2)          # si da exceso de ceros: ziformula = ~1```
 ```
+
 ```{r}
 testOutliers(res2)
 ```
+
 ### Inferencia sobre m0
+
 ```{r}
 # Escala log
 ic_log <- confint(m0)
-
-# Escala original: razón de medias (exp de los coeficientes)
-# Columnas: límite inferior, límite superior, estimado
-ic_razon <- exp(ic_log)
-ic_razon
+ic_log
 ```
+
 ```{r}
 #| fig-width: 10
 em <- emmeans(m0, ~ Treatment | StudyPeriod, type = "response")
@@ -147,7 +172,7 @@ ggplot(data = em_df, aes(y=response, x=interaction(Treatment, StudyPeriod), colo
   geom_errorbar(aes(ymin=asymp.LCL, ymax=asymp.UCL), width=0.1 )+
   geom_point(aes(y=response, x=interaction(Treatment, StudyPeriod)))+
   geom_text(aes(label = response), nudge_x = 0.2, check_overlap = TRUE, size=10/.pt)+
-  labs(title="Medias por Tratamiento y Semana", 
+  labs(title="Medias por Tratamiento y Período", 
        subtitle = "Placebo vs Melatonina", 
        x = "Latencia Actígrafo (minutos)",
        y = "Tratamiento + Período",
@@ -155,20 +180,16 @@ ggplot(data = em_df, aes(y=response, x=interaction(Treatment, StudyPeriod), colo
        color="Tratamiento")+
   theme_classic()
 ```
+
 ### Inferencia sobre m2
+
 ```{r}
 # Escala log
 ic_log <- confint(m2)
-
-# Escala original: razón de medias (exp de los coeficientes)
-# Columnas: límite inferior, límite superior, estimado
-ic_razon <- exp(ic_log)
-ic_razon
+ic_log
 ```
-```{r}
-# Interpretación: un IC de razón que NO incluye el 1 indica diferencia;
-# si lo incluye, los datos son compatibles con ausencia de diferencia.
 
+```{r}
 # ---- 7. Medias estimadas e IC 95% -----------------------------------
 #| fig-width: 14
 em <- emmeans(m2, ~ Treatment | StudyPeriodWeek, type = "response")
@@ -186,192 +207,79 @@ ggplot(data = em_df, aes(y=response, x=interaction(Treatment, StudyPeriodWeek), 
        color="Tratamiento")+
   theme_classic()
 ```
-### Bootstrap m0
-#### Paramétrico
+
+### Coeficientes e IC - SOL_ACT \~ Treatment \* StudyPeriodWeek + (1 \| ParticipantID/StudyPeriodWeek)
+
 ```{r}
-dat_m <- data.frame(dat)
-dat_m$ParticipantID <- droplevels(dat_m$ParticipantID)
-stopifnot(nrow(dat_m) == nobs(m0))
 
-# ---- 1. Estadísticos de interés -------------------------------------
-grid <- expand.grid(Treatment   = levels(dat_m$Treatment),
-                    StudyPeriod = levels(dat_m$StudyPeriod))
-
-estad <- function(mod) {
-  mu <- predict(mod, newdata = grid, re.form = NA, type = "response")
-  names(mu) <- paste(grid$Treatment, grid$StudyPeriod, sep = "_")
-  cambio_1 <- mu["1_Treatment"] / mu["1_Baseline"]
-  cambio_2 <- mu["2_Treatment"] / mu["2_Baseline"]
-  c(mu,
-    razon_Baseline   = unname(mu["1_Baseline"]  / mu["2_Baseline"]),
-    razon_Treatment  = unname(mu["1_Treatment"] / mu["2_Treatment"]),
-    cambio_grupo1    = unname(cambio_1),
-    cambio_grupo2    = unname(cambio_2),
-    razon_de_razones = unname(cambio_2 / cambio_1))
-}
-est_obs <- estad(m0)
-
-#-------------------------------------------------------------------------
-
-# Generadora: simula una respuesta nueva a partir del modelo ajustado
-# (incluye nuevos efectos aleatorios) y la pone en una copia de los datos
-sim_parametrica <- function(data, mle) {
-  d <- data
-  d$SOL_ACT <- simulate(mle, nsim = 1)[[1]]
-  d
+# Función para extraer los coeficientes del modelo
+extract_fixef <- function(fitted_model) {
+  return(fixef(fitted_model)$cond) 
 }
 
-# Estadístico: reajusta m3 en los datos simulados y devuelve los resultados.
-# En bootstrap paramétrico, statistic recibe solo los datos (sin índices).
-est_param <- function(data) {
-  mb <- tryCatch(
-    glmmTMB(SOL_ACT ~ Treatment * StudyPeriod + (1 | ParticipantID),
-            family = tweedie(link = "log"), data = data),
-    error = function(e) NULL)
-  if (is.null(mb)) return(rep(NA_real_, 9))   # réplica fallida
-  estad(mb)
-}
+# Bootstrap paramétrico usando bootMer
+set.seed(123) # For reproducibility
+boot_results <- lme4::bootMer(m2, 
+                              FUN = extract_fixef, 
+                              nsim = 100,            
+                              type = "parametric", 
+                              parallel = "multicore",
+                              ncpus = 8)
 
-set.seed(42)
-boot_param <- boot(
-  data      = dat_m,
-  statistic = est_param,
-  R         = 100,               
-  sim       = "parametric",      
-  ran.gen   = sim_parametrica,   
-  mle       = m0                 
-)
-boot_param
+# 4. View results and calculate bootstrap confidence intervals
+print(boot_results)
+```
+
+```{r}
+data.frame(estimado=round(fixef(m2)$cond,2),
+           ci_l=round(confint(m2)[1:10, 1],2),
+           ci_h=round(confint(m2)[1:10, 2],2),
+          bootstrap_ci_l=sapply(seq(1,length(fixef(m2)$cond)), function(i) {
+            round(boot.ci(boot_results, index = i, type = "perc")$percent[4], 2)
+          }),
+          bootstrap_ci_h=sapply(seq(1,length(fixef(m2)$cond)), function(i) {
+            round(boot.ci(boot_results, index = i, type = "perc")$percent[5], 2)
+          }))
+```
+
+### Tamaño de efecto
+#### Cohen's d
+
+```{r}
+# El metodo pairwise y revpairwise acomodan los signos en la salida, cambian las columnas a restar
+
+em <- emmeans::emmeans(m2, ~ Treatment, regrid = "response")
+contrast(em, "revpairwise", adjust = "none")
 ```
 ```{r}
-# IC 95% (index = posición del estadístico en estad())
-# 1-4: medias (1_Baseline, 2_Baseline, 1_Treatment, 2_Treatment)
-# 5: razón en Baseline | 6: razón en Treatment | 7-8: cambio grupo 1 y 2 | 9: razón de razones
-boot.ci(boot_param, type = c("perc", "norm"), index = 3)
-boot.ci(boot_param, type = c("perc", "norm"), index = 4)
-
-# Histograma de las réplicas (en ventana aparte para evitar el error de márgenes)
-plot(boot_param, index = 4)
-```
-#### No paramétrico
-```{r}
-ids <- levels(dat_m$ParticipantID)      # el "vector de datos" son los participantes
-
-est_modelo <- function(data, indices) {
-  sel <- data[indices]                  # participantes remuestreados
-  d <- do.call(rbind, lapply(seq_along(sel), function(i) {
-    x <- dat_m[dat_m$ParticipantID == sel[i], ]
-    x$ParticipantID <- paste0("P", i)   # id nuevo para cada copia
-    x
-  }))
-  d$ParticipantID <- factor(d$ParticipantID)
-  mb <- glmmTMB(SOL_ACT ~ Treatment * StudyPeriod + (1 | ParticipantID),
-                family = tweedie(link = "log"), data = d)
-  estad(mb)                             # medias, razones y razón de razones
-}
-
-set.seed(42)
-boot_np <- boot(data = ids, statistic = est_modelo, R = 100)   # PRUEBA con R = 10
-boot_np
+em1 <- emmeans::emmeans(m2, ~ StudyPeriodWeek, regrid = "response")
+contrast(em1, "revpairwise", adjust = "none")
 ```
 ```{r}
-# IC 95% percentil de cada estadístico (index = posición en estad())
-# 1-4: medias (1_Baseline, 2_Baseline, 1_Treatment, 2_Treatment)
-# 5: razón en Baseline | 6: razón en Treatment | 7-8: cambio grupo 1 y 2 | 9: razón de razones
-boot.ci(boot_np, type = "perc", index = 3)
-boot.ci(boot_np, type = "perc", index = 4)
-```
-### Bootstrap m2
-#### Paramétrico
-```{r}
-dat_m <- data.frame(dat)
-dat_m$ParticipantID <- droplevels(dat_m$ParticipantID)
-stopifnot(nrow(dat_m) == nobs(m2))
+sd_y <- sd(dat$SOL_ACT, na.rm = TRUE)
 
-# ---- 1. Estadísticos de interés -------------------------------------
-grid <- expand.grid(Treatment   = levels(dat_m$Treatment),
-                    StudyPeriodWeek = levels(dat_m$StudyPeriodWeek))
+cs <- as.data.frame(confint(contrast(em, "pairwise", adjust = "none")))
 
-estad <- function(mod) {
-  mu <- predict(mod, newdata = grid, re.form = NA, type = "response")
-  names(mu) <- paste(grid$Treatment, grid$StudyPeriodWeek, sep = "_")
-  cambio_1 <- mu["1_Treatment"] / mu["1_Baseline"]
-  cambio_2 <- mu["2_Treatment"] / mu["2_Baseline"]
-  c(mu,
-    razon_Baseline   = unname(mu["1_Baseline"]  / mu["2_Baseline"]),
-    razon_Treatment  = unname(mu["1_Treatment"] / mu["2_Treatment"]),
-    cambio_grupo1    = unname(cambio_1),
-    cambio_grupo2    = unname(cambio_2),
-    razon_de_razones = unname(cambio_2 / cambio_1))
-}
-est_obs <- estad(m2)
-
-#-------------------------------------------------------------------------
-
-# Generadora: simula una respuesta nueva a partir del modelo ajustado
-# (incluye nuevos efectos aleatorios) y la pone en una copia de los datos
-sim_parametrica <- function(data, mle) {
-  d <- data
-  d$SOL_ACT <- simulate(mle, nsim = 1)[[1]]
-  d
-}
-
-# Estadístico: reajusta m3 en los datos simulados y devuelve los resultados.
-# En bootstrap paramétrico, statistic recibe solo los datos (sin índices).
-est_param <- function(data) {
-  mb <- tryCatch(
-    glmmTMB(SOL_ACT ~ Treatment * StudyPeriodWeek + (1 | ParticipantID/StudyPeriodWeek),
-            family = tweedie(link = "log"), data = data),
-    error = function(e) NULL)
-  if (is.null(mb)) return(rep(NA_real_, 9))   # réplica fallida
-  estad(mb)
-}
-
-set.seed(42)
-boot_param <- boot(
-  data      = dat_m,
-  statistic = est_param,
-  R         = 100,               # PRUEBA con R = 10 para medir el tiempo
-  sim       = "parametric",      # usa ran.gen en vez de remuestrear con reposición
-  ran.gen   = sim_parametrica,   # la función generadora
-  mle       = m2                 # el modelo ajustado que usa la generadora
-)
-boot_param
+cs$d     <- cs$estimate        / sd_y
+cs$d_inf <- cs$asymp.LCL  / sd_y
+cs$d_sup <- cs$asymp.UCL  / sd_y
+#Treatment
+cs[, c("contrast", "estimate", "d", "d_inf", "d_sup")]
 ```
 ```{r}
-# IC 95% (index = posición del estadístico en estad())
-# 1-4: medias (1_Baseline, 2_Baseline, 1_Treatment, 2_Treatment)
-# 5: razón en Baseline | 6: razón en Treatment | 7-8: cambio grupo 1 y 2 | 9: razón de razones
-boot.ci(boot_param, type = c("perc", "norm"), index = 6)
-boot.ci(boot_param, type = c("perc", "norm"), index = 9)
+cs1 <- as.data.frame(confint(contrast(em1, "pairwise", adjust = "none")))
 
-# Histograma de las réplicas (en ventana aparte para evitar el error de márgenes)
-plot(boot_param, index = 6)
+cs1$d     <- cs$estimate        / sd_y
+cs1$d_inf <- cs$asymp.LCL  / sd_y
+cs1$d_sup <- cs$asymp.UCL  / sd_y
+#StudyPeriodWeek
+cs1[, c("contrast", "estimate", "d", "d_inf", "d_sup")]
 ```
-#### No paramétrico
+#### Standarize parameters
 ```{r}
-ids <- levels(dat_m$ParticipantID)      # el "vector de datos" son los participantes
-
-est_modelo <- function(data, indices) {
-  sel <- data[indices]                  # participantes remuestreados
-  d <- do.call(rbind, lapply(seq_along(sel), function(i) {
-    x <- dat_m[dat_m$ParticipantID == sel[i], ]
-    x$ParticipantID <- paste0("P", i)   # id nuevo para cada copia
-    x
-  }))
-  d$ParticipantID <- factor(d$ParticipantID)
-  mb <- glmmTMB(SOL_ACT ~ Treatment * StudyPeriodWeek + (1 | ParticipantID/StudyPeriodWeek),
-                family = tweedie(link = "log"), data = d)
-  estad(mb)                             # medias, razones y razón de razones
-}
-
-set.seed(42)
-boot_np <- boot(data = ids, statistic = est_modelo, R = 100)   # PRUEBA con R = 10
-boot_np
-
-# IC 95% percentil de cada estadístico (index = posición en estad())
-# 1-4: medias (1_Baseline, 2_Baseline, 1_Treatment, 2_Treatment)
-# 5: razón en Baseline | 6: razón en Treatment | 7-8: cambio grupo 1 y 2 | 9: razón de razones
-boot.ci(boot_np, type = "perc", index = 6)
-boot.ci(boot_np, type = "perc", index = 9)
+standardize_parameters(m2, method = "pseudo", ci_method = "satterthwaite")
+```
+### Pseudo R²
+```{r}
+PseudoR2(m2, which="all")
 ```
