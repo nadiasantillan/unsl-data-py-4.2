@@ -28,7 +28,7 @@ if(!require(DescTools)) install.packeges("DescTools")
 
 Para este trabajo seleccionamos el estudio “Eficacia de la melatonina con programación conductual del ciclo sueño-vigilia para el trastorno de la fase de sueño-vigilia retrasada: un ensayo clínico aleatorizado doble ciego”. La elección no fue casual: se trata de un estudio que ya habíamos abordado en una instancia anterior, en la cual los resultados obtenidos no nos resultaron del todo convincentes, ya sea por la forma en que habíamos planteado el análisis o por las decisiones que tomamos al trabajar con los datos. Por ese motivo, decidimos retomarlo y volver a analizar el dataset desde el principio.
 
-La pregunta de investigación que guía nuestro análisis es: ¿La melatonina tiene efectos sobre el tiempo que una persona tarda en dormirse? Es decir, buscamos evaluar si quienes reciben melatonina presentan una latencia de sueño distinta de quienes no la reciben. Esperando corroborar al artículo original, esperamos encontrar evidencia de que la melatonina disminuye la latencia de sueño. Al mismo tiempo, consideramos que este nuevo análisis es una oportunidad para verificar si los resultados publicados se sostienen a partir de los datos disponibles, lo que aporta a la reproducibilidad y a una interpretación más sólida de los hallazgos.
+La pregunta de investigación que guía nuestro análisis es: ¿La melatonina tiene efectos sobre el tiempo que una persona tarda en dormirse? Es decir, buscamos evaluar si quienes reciben melatonina presentan una latencia de sueño distinta de quienes no la reciben. Esperamos encontrar evidencia de que la melatonina disminuye la latencia de sueño. 
 
 ### Descripción de la Base de Datos
 
